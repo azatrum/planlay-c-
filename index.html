@@ -160,6 +160,11 @@
         <header class="text-center my-6">
             <h1 class="fancy-title text-6xl font-bold text-pink-500 drop-shadow-md">Ya Sahibez Zaman</h1>
             <p id="current-date" class="text-xl text-gray-600 mt-2"></p>
+            <div class="flex items-center justify-center gap-3 mt-2">
+                <button id="prev-day-btn" class="bg-white/80 hover:bg-white text-gray-700 font-bold py-1 px-3 rounded-lg shadow-sm">◀</button>
+                <div id="active-date-label" class="text-sm text-gray-600"></div>
+                <button id="next-day-btn" class="bg-white/80 hover:bg-white text-gray-700 font-bold py-1 px-3 rounded-lg shadow-sm">▶</button>
+            </div>
         </header>
 
         <!-- Ana İçerik Izgarası -->
@@ -187,6 +192,55 @@
                         </select>
                         <input type="number" id="new-task-frequency" placeholder="Haftada kaç kez?" min="1" class="p-2 border rounded-lg bg-white w-24 focus:outline-none focus:ring-2 focus:ring-pink-300 hidden">
                         <button id="add-task-btn" class="bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-300">Ekle</button>
+                    </div>
+                </div>
+
+                <!-- Görev Düzenleme Modal (Yeni) -->
+                <div id="task-edit-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div class="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                        <h3 class="text-2xl font-bold text-pink-600 mb-4">Görevi Düzenle</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Görev Adı -->
+                            <div>
+                                <label class="block text-sm font-semibold mb-1">Görev Adı</label>
+                                <input type="text" id="edit-task-title" placeholder="Görev adı..." class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300">
+                            </div>
+
+                            <!-- Tekrar Sayısı (sadece günlük görevler için) -->
+                            <div id="edit-repetition-section" class="hidden">
+                                <label class="block text-sm font-semibold mb-1">Günde Kaç Defa Yapılsın?</label>
+                                <input type="number" id="edit-task-repetition" min="1" value="1" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300">
+                            </div>
+
+                            <!-- Alt Görevler -->
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <label class="block text-sm font-semibold">Alt Görevler (Opsiyonel)</label>
+                                    <button id="add-subtask-btn" class="text-sm bg-green-400 hover:bg-green-500 text-white px-3 py-1 rounded">+ Alt Görev Ekle</button>
+                                </div>
+                                <div id="edit-subtasks-list" class="space-y-2 ml-2 border-l-2 border-pink-200 pl-3">
+                                    <p class="text-gray-400 italic text-sm">Alt görev eklenmedi</p>
+                                </div>
+                            </div>
+
+                            <!-- Alt Görevlerin Puanlandırılması (sadece alt görev varsa görün) -->
+                            <div id="edit-subtask-scoring-section" class="hidden p-3 bg-pink-50 rounded-lg border border-pink-200">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="subtask-scoring" value="grouped" checked class="w-4 h-4">
+                                    <span class="text-sm">Alt görevlerin hepsi birlikte 1 puan ver (görevin parçaları)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 mt-2">
+                                    <input type="radio" name="subtask-scoring" value="individual" class="w-4 h-4">
+                                    <span class="text-sm">Her alt görev ayrı ayrı puan ver (bağımsız görevler)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end gap-2 mt-6">
+                            <button id="edit-task-cancel-btn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg">İptal</button>
+                            <button id="edit-task-save-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">Kaydet</button>
+                        </div>
                     </div>
                 </div>
 
@@ -420,8 +474,20 @@
     <script type="module">
         // --- GLOBAL DEĞİŞKENLER VE SABİTLER ---
         
-        let currentDayStr = new Date().toISOString().split('T')[0];
+        // Local tarih anahtarı (YYYY-MM-DD) - zaman dilimi hatalarını önlemek için toISOString kullanmıyoruz
+        function formatDateKey(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        let currentDayStr = formatDateKey(new Date());
         let currentWeekStr = getWeekId(new Date());
+        // Aktif düzenlenen tarih (varsayılan: bugün). Kullanıcı önceki günlere gezinebilir.
+        let activeDateStr = currentDayStr;
+        // Kaç güne kadar geriye düzenleme izni var
+        const EDITABLE_DAYS = 7;
 
         // Yerel Depolama için anahtar öneki
         const LS_PREFIX = 'YSZ_';
@@ -485,6 +551,70 @@
         // DOM Element Referansları
         const $ = (selector) => document.querySelector(selector);
         const $$ = (selector) => document.querySelectorAll(selector);
+
+        // Tarihe gün ekleyip ISO yyyy-mm-dd formatında döndürür
+        function addDays(dateStr, delta) {
+            const d = new Date(dateStr + 'T00:00:00');
+            d.setDate(d.getDate() + delta);
+            return formatDateKey(d);
+        }
+
+        // Yardımcı: iki tarih arasındaki gün farkını (bugün - target) olarak döndürür (tam sayıya yuvarlanmış)
+        function daysDifferenceFromToday(targetDateStr) {
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const today = new Date(currentDayStr + 'T00:00:00');
+            const target = new Date(targetDateStr + 'T00:00:00');
+            return Math.round((today - target) / msPerDay);
+        }
+
+        function formatLongDate(dateStr) {
+            try {
+                return new Date(dateStr + 'T00:00:00').toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            } catch (e) {
+                return dateStr;
+            }
+        }
+
+        function isActiveDateEditable() {
+            const diff = daysDifferenceFromToday(activeDateStr);
+            return diff >= 0 && diff <= EDITABLE_DAYS;
+        }
+
+        function updateDateDisplay() {
+            // Büyük tarih başlığı (sabit olarak bugünün uzun gösterimi)
+            $("#current-date").textContent = new Date(currentDayStr + 'T00:00:00').toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const label = $("#active-date-label");
+            if (!label) return;
+            if (activeDateStr === currentDayStr) {
+                label.textContent = `Bugün — ${formatLongDate(activeDateStr)}`;
+            } else {
+                const editable = isActiveDateEditable();
+                label.textContent = `${formatLongDate(activeDateStr)} ${editable ? '(Düzenlenebilir)' : '(Arşiv - Salt okunur)'} `;
+            }
+
+            // Form kontrollerini aktive/pasif yap
+            const addBtn = $("#add-task-btn");
+            const newTitle = $("#new-task-title");
+            const newType = $("#new-task-type");
+            const newFreq = $("#new-task-frequency");
+            if (addBtn) addBtn.disabled = !isActiveDateEditable();
+            if (newTitle) newTitle.disabled = !isActiveDateEditable();
+            if (newType) newType.disabled = !isActiveDateEditable();
+            if (newFreq) newFreq.disabled = !isActiveDateEditable();
+        }
+
+        function setActiveDate(dateStr) {
+            // Tarihi sınırla: ileri gidemeziz (gelecek), geri ise sadece mantıksal limit gösterilir
+            const today = new Date(currentDayStr + 'T00:00:00');
+            const candidate = new Date(dateStr + 'T00:00:00');
+            if (candidate > today) {
+                activeDateStr = currentDayStr;
+            } else {
+                activeDateStr = dateStr;
+            }
+            updateDateDisplay();
+            loadDailyTasks();
+        }
 
         // --- YEREL DEPOLAMA YARDIMCILARI ---
 
@@ -554,6 +684,9 @@
             setupEventListeners();
         }
 
+        // Başlangıçta aktif tarihi ayarla (UI başlatma)
+        setActiveDate(currentDayStr);
+
         /**
          * Gün değişip değişmediğini kontrol eder. Değiştiyse, dünkü görevleri
          * 'history' koleksiyonuna taşır ve varsayılanları yeni güne ekler. (İstek 9)
@@ -562,8 +695,6 @@
             try {
                 const lastLoginInfo = lsGet('metadata_lastLogin', { date: null, week: null });
                 const lastLoginDate = lastLoginInfo.date;
-
-                $("#current-date").textContent = new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
                 if (lastLoginDate && lastLoginDate !== currentDayStr) {
                     console.log(`Gün değişti. Eski gün: ${lastLoginDate}, Yeni gün: ${currentDayStr}`);
@@ -583,6 +714,9 @@
                 }
                 
                 lsSet('metadata_lastLogin', { date: currentDayStr, week: currentWeekStr });
+
+                // Güncelle: tarih gösterimini yenile
+                updateDateDisplay();
 
             } catch (error) {
                 console.error("Gün değiştirme kontrol hatası:", error);
@@ -689,10 +823,20 @@
 
         // --- YEREL DEPOLAMADAN YÜKLEME FONKSİYONLARI ---
         function loadDailyTasks() {
-            const tasks = lsGet(`tasks_daily_${currentDayStr}`, []);
+            // Aktif tarihe göre yükle. Eğer aktif tarih için canlı günlük kayıt yoksa, arşivden oku (salt okunur).
+            let tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
+            let readOnly = false;
+            if (!tasks || tasks.length === 0) {
+                const history = lsGet('history', {});
+                if (history && history[activeDateStr]) {
+                    tasks = history[activeDateStr];
+                    readOnly = true; // Arşivlenmiş kayıt, salt okunur
+                }
+            }
+            tasks = tasks || [];
             const dunyevi = tasks.filter(t => t.type === 'dunyevi');
             const ilmi = tasks.filter(t => t.type === 'ilmi');
-            renderDailyTasks(dunyevi, ilmi);
+            renderDailyTasks(dunyevi, ilmi, readOnly);
             calculateSuccess(); // Günlük başarıyı hesapla/güncelle
         }
 
@@ -755,15 +899,15 @@
         
         // --- RENDER (GÖRÜNÜM) FONKSİYONLARI ---
 
-        function renderDailyTasks(dunyevi, ilmi) {
+        function renderDailyTasks(dunyevi, ilmi, readOnly = false) {
             const dunyeviContainer = $("#dunyevi-tasks");
             const ilmiContainer = $("#ilmi-tasks");
             
             dunyeviContainer.innerHTML = dunyevi.length ? '' : '<p class="text-gray-400 italic">Dünyevi görev yok.</p>';
             ilmiContainer.innerHTML = ilmi.length ? '' : '<p class="text-gray-400 italic">İlmi görev yok.</p>';
 
-            dunyevi.forEach(task => dunyeviContainer.appendChild(createTaskElement(task, 'daily')));
-            ilmi.forEach(task => ilmiContainer.appendChild(createTaskElement(task, 'daily')));
+            dunyevi.forEach(task => dunyeviContainer.appendChild(createTaskElement(task, 'daily', readOnly)));
+            ilmi.forEach(task => ilmiContainer.appendChild(createTaskElement(task, 'daily', readOnly)));
         }
 
         function renderWeeklyTasks(tasks) {
@@ -912,34 +1056,138 @@
         }
 
 
-        function createTaskElement(task, taskListType) {
+        function createTaskElement(task, taskListType, readOnly = false) {
             const el = document.createElement('div');
-            el.className = 'task-item bg-white p-4 rounded-lg shadow-md flex items-center space-x-4';
+            el.className = 'task-item bg-white p-4 rounded-lg shadow-md flex flex-col space-y-2';
             el.dataset.id = task.id;
 
             if (taskListType === 'daily') {
-                el.innerHTML = `
-                    <span class="status-btn status-${task.status}" data-status="${task.status}" title="Durumu değiştir"></span>
-                    <span class="flex-grow text-gray-800">${task.title}</span>
-                    <button class="delete-task-btn text-gray-400 hover:text-red-500 text-xl" title="Görevi sil">&times;</button>
-                `;
-                el.querySelector('.status-btn').onclick = () => updateTaskStatus(task.id, task.status);
-                el.querySelector('.delete-task-btn').onclick = () => deleteTask(task.id, 'daily');
+                // Ana görev başlığı satırı
+                const headerRow = document.createElement('div');
+                headerRow.className = 'flex items-center space-x-4';
+                
+                if (readOnly) {
+                    headerRow.innerHTML = `
+                        <span class="status-btn status-${task.status}" data-status="${task.status}" title="Durumu (salt okunur)"></span>
+                        <span class="flex-grow text-gray-800">${task.title}</span>
+                    `;
+                } else {
+                    headerRow.innerHTML = `
+                        <span class="status-btn status-${task.status}" data-status="${task.status}" title="Durumu değiştir"></span>
+                        <span class="flex-grow text-gray-800">${task.title}</span>
+                        <button class="edit-task-btn text-blue-400 hover:text-blue-600 text-lg" title="Görevi düzenle">✎</button>
+                        <button class="delete-task-btn text-gray-400 hover:text-red-500 text-xl" title="Görevi sil">&times;</button>
+                    `;
+                    headerRow.querySelector('.status-btn').onclick = () => updateTaskStatus(task.id, task.status);
+                    headerRow.querySelector('.edit-task-btn').onclick = () => openTaskEditModal(task, activeDateStr);
+                    headerRow.querySelector('.delete-task-btn').onclick = () => deleteTask(task.id, 'daily');
+                }
+                
+                el.appendChild(headerRow);
+
+                // Tekrar sayısı (eğer > 1 ise göster)
+                if (task.repetitionCount && task.repetitionCount > 1) {
+                    const repRow = document.createElement('div');
+                    repRow.className = 'ml-8 flex space-x-1 items-center';
+                    const checkboxes = [];
+                    for (let i = 0; i < task.repetitionCount; i++) {
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'w-5 h-5 repetition-checkbox';
+                        checkbox.dataset.index = i;
+                        checkbox.checked = i < (task.repetitionCompleted || 0);
+                        if (!readOnly) {
+                            checkbox.onchange = () => updateTaskRepetition(task.id, i);
+                        } else {
+                            checkbox.disabled = true;
+                        }
+                        repRow.appendChild(checkbox);
+                    }
+                    el.appendChild(repRow);
+                }
+
+                // Alt görevler (eğer varsa)
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const subtaskRow = document.createElement('div');
+                    subtaskRow.className = 'ml-8 border-l-2 border-pink-200 pl-3 space-y-1';
+                    task.subtasks.forEach((subtask, idx) => {
+                        const subtaskEl = document.createElement('div');
+                        subtaskEl.className = 'flex items-center space-x-2 text-sm';
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'w-4 h-4 subtask-checkbox';
+                        checkbox.dataset.index = idx;
+                        checkbox.checked = subtask.completed || false;
+                        if (!readOnly) {
+                            checkbox.onchange = () => updateSubtask(task.id, idx);
+                        } else {
+                            checkbox.disabled = true;
+                        }
+                        subtaskEl.appendChild(checkbox);
+                        const label = document.createElement('span');
+                        label.className = 'text-gray-700';
+                        if (subtask.completed) label.className += ' line-through opacity-60';
+                        label.textContent = subtask.title;
+                        subtaskEl.appendChild(label);
+                        subtaskRow.appendChild(subtaskEl);
+                    });
+                    el.appendChild(subtaskRow);
+                }
                 
             } else if (taskListType === 'weekly') {
-                el.innerHTML = `
+                el.className = 'task-item bg-white p-4 rounded-lg shadow-md flex flex-col space-y-2';
+                
+                // Ana görev başlığı satırı
+                const headerRow = document.createElement('div');
+                headerRow.className = 'flex items-center space-x-4';
+                headerRow.innerHTML = `
                     <span class="flex-grow text-gray-800">${task.title} (Haftada ${task.frequency} kez)</span>
-                    <div class="flex space-x-2 items-center">
-                        ${Array(task.frequency).fill(0).map((_, i) => 
-                            `<input type="checkbox" class="weekly-checkbox w-5 h-5" data-index="${i}" ${i < task.completed ? 'checked' : ''}>`
-                        ).join('')}
-                    </div>
-                    <button class="delete-task-btn text-gray-400 hover:text-red-500 text-xl ml-4" title="Görevi sil">&times;</button>
+                    <button class="edit-task-btn text-blue-400 hover:text-blue-600 text-lg" title="Görevi düzenle">✎</button>
+                    <button class="delete-task-btn text-gray-400 hover:text-red-500 text-xl" title="Görevi sil">&times;</button>
                 `;
-                el.querySelectorAll('.weekly-checkbox').forEach(cb => {
-                    cb.onchange = () => updateWeeklyTask(task.id);
-                });
-                el.querySelector('.delete-task-btn').onclick = () => deleteTask(task.id, 'weekly');
+                
+                headerRow.querySelector('.edit-task-btn').onclick = () => openWeeklyTaskEditModal(task, currentWeekStr);
+                headerRow.querySelector('.delete-task-btn').onclick = () => deleteTask(task.id, 'weekly');
+                
+                el.appendChild(headerRow);
+
+                // Frekans kutucukları
+                const repRow = document.createElement('div');
+                repRow.className = 'ml-8 flex space-x-1 items-center';
+                for (let i = 0; i < task.frequency; i++) {
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'w-5 h-5 weekly-checkbox';
+                    checkbox.dataset.index = i;
+                    checkbox.checked = i < task.completed;
+                    checkbox.onchange = () => updateWeeklyTask(task.id);
+                    repRow.appendChild(checkbox);
+                }
+                el.appendChild(repRow);
+
+                // Alt görevler (varsa)
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const subtaskRow = document.createElement('div');
+                    subtaskRow.className = 'ml-8 border-l-2 border-green-200 pl-3 space-y-1';
+                    task.subtasks.forEach((subtask, idx) => {
+                        const subtaskEl = document.createElement('div');
+                        subtaskEl.className = 'flex items-center space-x-2 text-sm';
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'w-4 h-4 subtask-checkbox';
+                        checkbox.dataset.index = idx;
+                        checkbox.checked = subtask.completed || false;
+                        checkbox.onchange = () => updateWeeklySubtask(task.id, idx);
+                        subtaskEl.appendChild(checkbox);
+                        const label = document.createElement('span');
+                        label.className = 'text-gray-700';
+                        if (subtask.completed) label.className += ' line-through opacity-60';
+                        label.textContent = subtask.title;
+                        subtaskEl.appendChild(label);
+                        subtaskRow.appendChild(subtaskEl);
+                    });
+                    el.appendChild(subtaskRow);
+                }
             }
             return el;
         }
@@ -1065,11 +1313,26 @@
             // Geçmiş Modal
             $("#show-history-btn").onclick = showHistoryModal;
             $("#history-modal-close-btn").onclick = () => $("#history-modal").classList.add('hidden');
+
+            // Tarih gezinme butonları
+            const prevBtn = $("#prev-day-btn");
+            const nextBtn = $("#next-day-btn");
+            if (prevBtn) prevBtn.onclick = () => setActiveDate(addDays(activeDateStr, -1));
+            if (nextBtn) nextBtn.onclick = () => setActiveDate(addDays(activeDateStr, 1));
             
             // YENİ: Veri Yedekleme Event Listeners
             $("#export-data-btn").onclick = exportData;
             $("#import-data-btn").onclick = () => $("#import-file-input").click(); // Gizli input'u tetikle
             $("#import-file-input").onchange = importData;
+
+            // YENİ: Görev Düzenleme Modal Event Listeners
+            $("#add-subtask-btn").onclick = addSubtaskToEdit;
+            $("#edit-task-save-btn").onclick = saveTaskEdit;
+            $("#edit-task-cancel-btn").onclick = closeTaskEditModal;
+            // Modal dışında bir yere tıklanırsa kapat
+            document.getElementById("task-edit-modal").onclick = (e) => {
+                if (e.target.id === "task-edit-modal") closeTaskEditModal();
+            };
         }
 
         // --- CRUD İŞLEMLERİ ---
@@ -1112,21 +1375,32 @@
                         id: Date.now().toString(), // Benzersiz ID
                         title: title,
                         frequency: frequency,
-                        completed: 0
+                        completed: 0,
+                        subtasks: [], // Alt görevler (haftalık için de)
+                        subtaskScoring: 'grouped'
                     });
                     lsSet(key, tasks);
                     loadWeeklyTasks(); // UI'ı yenile (içinde haftalık başarı hesaplaması var)
 
                 } else {
-                    const key = `tasks_daily_${currentDayStr}`;
+                    if (!isActiveDateEditable()) {
+                        showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece son 7 güne kadar düzenleyebilirsiniz.');
+                        return;
+                    }
+                    const key = `tasks_daily_${activeDateStr}`;
                     const tasks = lsGet(key, []);
                     tasks.push({
                         id: Date.now().toString(), // Benzersiz ID
                         title: title,
                         type: type,
-                        status: 0
+                        status: 0,
+                        repetitionCount: 1, // Varsayılan: 1 kez
+                        repetitionCompleted: 0, // Kaç kez tamamlandı
+                        subtasks: [], // Alt görevler
+                        subtaskScoring: 'grouped' // 'grouped' veya 'individual'
                     });
-                    lsSet(key, tasks);
+                    // Persist and update history/stats for this date
+                    persistDailyState(activeDateStr, tasks);
                     loadDailyTasks(); // UI'ı yenile (içinde günlük başarı hesaplaması var)
                 }
                 
@@ -1175,13 +1449,19 @@
                             id: Date.now().toString(),
                             title: task.title,
                             frequency: task.frequency || 1,
-                            completed: 0
+                            completed: 0,
+                            subtasks: [],
+                            subtaskScoring: 'grouped'
                         });
                         lsSet(key, tasks);
                         loadWeeklyTasks();
                     }
                 } else {
-                    const key = `tasks_daily_${currentDayStr}`;
+                    if (!isActiveDateEditable()) {
+                        showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece son 7 güne kadar düzenleyebilirsiniz.');
+                        return;
+                    }
+                    const key = `tasks_daily_${activeDateStr}`;
                     const tasks = lsGet(key, []);
                     const exists = tasks.some(t => t.title === task.title);
                     if (!exists) {
@@ -1189,9 +1469,14 @@
                             id: Date.now().toString(),
                             title: task.title,
                             type: poolType,
-                            status: 0
+                            status: 0,
+                            repetitionCount: 1,
+                            repetitionCompleted: 0,
+                            subtasks: [],
+                            subtaskScoring: 'grouped'
                         });
-                        lsSet(key, tasks);
+                        // Persist and update history/stats for this date
+                        persistDailyState(activeDateStr, tasks);
                         loadDailyTasks();
                     }
                 }
@@ -1199,19 +1484,247 @@
                 console.error("Havuzdan görev ekleme hatası:", error);
             }
         }
+
+        // --- YENİ: GÖREV DÜZENLEME FONKSİYONLARI ---
+
+        let editingTaskData = null; // Modal'da düzenlenen görevin geçici verisi
+        let editingTaskType = null; // 'daily' veya 'weekly'
+
+        function openTaskEditModal(task, dateStr) {
+            if (!isActiveDateEditable()) {
+                showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece son 7 güne kadar düzenleyebilirsiniz.');
+                return;
+            }
+
+            editingTaskType = 'daily';
+            editingTaskData = { ...task, dateStr }; // Geçici kopya (orijinal değiştirilmemesi için)
+
+            // Modal alanlarını doldur
+            $("#edit-task-title").value = task.title;
+            
+            // Tekrar sayısı (sadece günlük görevler için)
+            if (task.type === 'haftalik') {
+                $("#edit-repetition-section").classList.add('hidden');
+            } else {
+                $("#edit-repetition-section").classList.remove('hidden');
+                $("#edit-task-repetition").value = task.repetitionCount || 1;
+            }
+
+            // Alt görevleri listele
+            renderEditSubtasksList();
+
+            // Alt görev skorlaması
+            if (task.subtasks && task.subtasks.length > 0) {
+                $("#edit-subtask-scoring-section").classList.remove('hidden');
+                document.querySelector(`input[name="subtask-scoring"][value="${task.subtaskScoring || 'grouped'}"]`).checked = true;
+            } else {
+                $("#edit-subtask-scoring-section").classList.add('hidden');
+            }
+
+            // Modal'ı aç
+            $("#task-edit-modal").classList.remove('hidden');
+        }
+
+        function openWeeklyTaskEditModal(task, weekStr) {
+            editingTaskType = 'weekly';
+            editingTaskData = { ...task, weekStr }; // Geçici kopya
+
+            // Modal alanlarını doldur
+            $("#edit-task-title").value = task.title;
+            $("#edit-repetition-section").classList.add('hidden'); // Haftalık için gizle
+            
+            // Alt görevleri listele
+            renderEditSubtasksList();
+
+            // Alt görev skorlaması
+            if (task.subtasks && task.subtasks.length > 0) {
+                $("#edit-subtask-scoring-section").classList.remove('hidden');
+                document.querySelector(`input[name="subtask-scoring"][value="${task.subtaskScoring || 'grouped'}"]`).checked = true;
+            } else {
+                $("#edit-subtask-scoring-section").classList.add('hidden');
+            }
+
+            // Modal'ı aç
+            $("#task-edit-modal").classList.remove('hidden');
+        }
+
+        function renderEditSubtasksList() {
+            const container = $("#edit-subtasks-list");
+            const subtasks = editingTaskData.subtasks || [];
+
+            if (subtasks.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 italic text-sm">Alt görev eklenmedi</p>';
+            } else {
+                container.innerHTML = '';
+                subtasks.forEach((subtask, idx) => {
+                    const el = document.createElement('div');
+                    el.className = 'flex items-center space-x-2 p-2 bg-gray-100 rounded';
+                    el.innerHTML = `
+                        <input type="checkbox" ${subtask.completed ? 'checked' : ''} disabled class="w-4 h-4">
+                        <span class="flex-grow text-sm">${subtask.title}</span>
+                        <button class="text-red-500 hover:text-red-700 text-sm">Sil</button>
+                    `;
+                    el.querySelector('button').onclick = () => {
+                        editingTaskData.subtasks.splice(idx, 1);
+                        renderEditSubtasksList();
+                        updateEditSubtaskScoringVisibility();
+                    };
+                    container.appendChild(el);
+                });
+            }
+        }
+
+        function updateEditSubtaskScoringVisibility() {
+            const section = $("#edit-subtask-scoring-section");
+            const subtasks = editingTaskData.subtasks || [];
+            if (subtasks.length > 0) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
+        function addSubtaskToEdit() {
+            const title = prompt("Alt görev adı girin:");
+            if (title && title.trim()) {
+                editingTaskData.subtasks = editingTaskData.subtasks || [];
+                editingTaskData.subtasks.push({
+                    title: title.trim(),
+                    completed: false
+                });
+                renderEditSubtasksList();
+                updateEditSubtaskScoringVisibility();
+            }
+        }
+
+        function saveTaskEdit() {
+            if (!editingTaskData || !editingTaskType) return;
+
+            const newTitle = $("#edit-task-title").value.trim();
+            if (!newTitle) {
+                showMessage("Hata", "Görev adı boş olamaz.");
+                return;
+            }
+
+            editingTaskData.title = newTitle;
+            
+            // Tekrar sayısını güncelle (sadece günlük görevler için)
+            if (editingTaskType === 'daily' && editingTaskData.type !== 'haftalik') {
+                const rep = parseInt($("#edit-task-repetition").value) || 1;
+                editingTaskData.repetitionCount = rep;
+                // Eğer tekrar sayısı azaldıysa, tamamlanan sayısı da azalt
+                if (editingTaskData.repetitionCompleted > rep) {
+                    editingTaskData.repetitionCompleted = rep;
+                }
+            }
+
+            // Alt görev skorlaması
+            if (editingTaskData.subtasks && editingTaskData.subtasks.length > 0) {
+                const scoringType = document.querySelector('input[name="subtask-scoring"]:checked').value;
+                editingTaskData.subtaskScoring = scoringType;
+            }
+
+            // Verileri kaydet
+            if (editingTaskType === 'daily') {
+                const key = `tasks_daily_${editingTaskData.dateStr}`;
+                let tasks = lsGet(key, []);
+                const taskIndex = tasks.findIndex(t => t.id === editingTaskData.id);
+                if (taskIndex > -1) {
+                    tasks[taskIndex] = editingTaskData;
+                    persistDailyState(editingTaskData.dateStr, tasks);
+                    loadDailyTasks();
+                }
+            } else if (editingTaskType === 'weekly') {
+                const key = `tasks_weekly_${editingTaskData.weekStr}`;
+                let tasks = lsGet(key, []);
+                const taskIndex = tasks.findIndex(t => t.id === editingTaskData.id);
+                if (taskIndex > -1) {
+                    tasks[taskIndex] = editingTaskData;
+                    lsSet(key, tasks);
+                    calculateWeeklySuccess();
+                    loadWeeklyTasks();
+                }
+            }
+
+            closeTaskEditModal();
+        }
+
+        function closeTaskEditModal() {
+            $("#task-edit-modal").classList.add('hidden');
+            editingTaskData = null;
+            editingTaskType = null;
+        }
+
+        function updateSubtask(taskId, subtaskIndex) {
+            const key = `tasks_daily_${activeDateStr}`;
+            let tasks = lsGet(key, []);
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+            if (taskIndex > -1) {
+                const task = tasks[taskIndex];
+                if (task.subtasks && task.subtasks[subtaskIndex]) {
+                    task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+                    persistDailyState(activeDateStr, tasks);
+                    loadDailyTasks();
+                }
+            }
+        }
+
+        function updateTaskRepetition(taskId, repetitionIndex) {
+            const key = `tasks_daily_${activeDateStr}`;
+            let tasks = lsGet(key, []);
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+            if (taskIndex > -1) {
+                const task = tasks[taskIndex];
+                // Eğer son kutucuk ise, tamamlanan sayısını o indexe ayarla + 1
+                // Yani indexler 0-based; 3 adet varsa index 0, 1, 2 var; tıklanıp completed=1, 2, 3 olabilir
+                let newCompleted = 0;
+                const checkboxes = document.querySelectorAll(`[data-id="${taskId}"] .repetition-checkbox`);
+                checkboxes.forEach((cb, idx) => {
+                    if (cb.checked) newCompleted = idx + 1;
+                });
+                task.repetitionCompleted = newCompleted;
+                persistDailyState(activeDateStr, tasks);
+                // UI hemen güncellemek yerine modal tetiklememek için sadece veri güncelleyelim
+                calculateSuccess();
+                loadStats();
+            }
+        }
+
+        function updateWeeklySubtask(taskId, subtaskIndex) {
+            const key = `tasks_weekly_${currentWeekStr}`;
+            let tasks = lsGet(key, []);
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+
+            if (taskIndex > -1) {
+                const task = tasks[taskIndex];
+                if (task.subtasks && task.subtasks[subtaskIndex]) {
+                    task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
+                    lsSet(key, tasks);
+                    calculateWeeklySuccess();
+                    loadWeeklyTasks();
+                }
+            }
+        }
         
         /**
          * YENİ: Günlük görevin durumunu günceller (0, 1, 2)
          */
         async function updateTaskStatus(taskId, currentStatus) {
+            if (!isActiveDateEditable()) {
+                showMessage('Salt Okunur', 'Bu görev arşivlenmiş ve düzenlenemez. Sadece son 7 güne kadar düzenleyebilirsiniz.');
+                return;
+            }
             const newStatus = (currentStatus + 1) % 3;
-            const key = `tasks_daily_${currentDayStr}`;
+            const key = `tasks_daily_${activeDateStr}`;
             const tasks = lsGet(key, []);
             
             const taskIndex = tasks.findIndex(t => t.id === taskId);
             if (taskIndex > -1) {
                 tasks[taskIndex].status = newStatus;
-                lsSet(key, tasks);
+                // Persist and update history/stats for this date
+                persistDailyState(activeDateStr, tasks);
                 loadDailyTasks(); // UI'ı yenile (içinde başarı hesaplaması var)
             }
         }
@@ -1242,10 +1755,15 @@
          */
         async function deleteTask(taskId, taskType) {
             if (taskType === 'daily') {
-                const key = `tasks_daily_${currentDayStr}`;
+                if (!isActiveDateEditable()) {
+                    showMessage('Salt Okunur', 'Arşivlenmiş görevler silinemez. Sadece son 7 güne kadar düzenleyebilirsiniz.');
+                    return;
+                }
+                const key = `tasks_daily_${activeDateStr}`;
                 let tasks = lsGet(key, []);
                 tasks = tasks.filter(t => t.id !== taskId);
-                lsSet(key, tasks);
+                // Persist and update history/stats for this date
+                persistDailyState(activeDateStr, tasks);
                 loadDailyTasks();
             } else if (taskType === 'weekly') {
                 const key = `tasks_weekly_${currentWeekStr}`;
@@ -1287,7 +1805,11 @@
          */
         function calculateSuccess(tasks = null) {
             if (tasks === null) {
-                tasks = lsGet(`tasks_daily_${currentDayStr}`, []);
+                tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
+                // Eğer aktif tarihte canlı kayıt yoksa arşivden oku
+                if ((!tasks || tasks.length === 0) && lsGet('history', {})[activeDateStr]) {
+                    tasks = lsGet('history', {})[activeDateStr];
+                }
             }
             
             const total = tasks.length;
@@ -1310,6 +1832,77 @@
         }
 
         /**
+         * Helper: compute success percentage from a task list
+         */
+        function computeSuccessFromTasks(tasks) {
+            const total = tasks.length;
+            let completed = 0;
+            if (total === 0) return { total: 0, completed: 0, success: 0 };
+            
+            completed = tasks.reduce((sum, task) => {
+                let taskScore = 0;
+
+                // Eğer alt görevler varsa
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                    if (task.subtaskScoring === 'individual') {
+                        // Her alt görev ayrı ayrı puan
+                        taskScore = completedSubtasks;
+                        return sum + taskScore / task.subtasks.length; // Normalize et
+                    } else {
+                        // Hepsi birlikte 1 puan (grouped)
+                        taskScore = completedSubtasks === task.subtasks.length ? 1 : (completedSubtasks > 0 ? 0.5 : 0);
+                        return sum + taskScore;
+                    }
+                }
+
+                // Tekrar sayısı varsa
+                if (task.repetitionCount && task.repetitionCount > 1) {
+                    taskScore = task.repetitionCompleted / task.repetitionCount;
+                    return sum + taskScore;
+                }
+
+                // Normal durum (status: 0, 1, 2)
+                if (task.status === 1) taskScore = 0.5;
+                if (task.status === 2) taskScore = 1;
+                
+                return sum + taskScore;
+            }, 0);
+            
+            const success = Math.round((completed / total) * 100);
+            return { total, completed, success };
+        }
+
+        /**
+         * Persist daily tasks for a date and update history & stats immediately.
+         * Ensures that edits to previous days are reflected in 'history' and 'stats'.
+         */
+        function persistDailyState(dateStr, tasks) {
+            // Ensure tasks is an array
+            tasks = tasks || [];
+            // Save the live daily key
+            lsSet(`tasks_daily_${dateStr}`, tasks);
+
+            // Update history mapping
+            const allHistory = lsGet('history', {});
+            allHistory[dateStr] = tasks;
+            lsSet('history', allHistory);
+
+            // Update stats.daily
+            const allStats = lsGet('stats', { daily: {}, weekly: {} });
+            const { success } = computeSuccessFromTasks(tasks);
+            allStats.daily = allStats.daily || {};
+            allStats.daily[dateStr] = { success };
+            lsSet('stats', allStats);
+
+            // If the persisted date is the currently active or current day, update UI elements
+            if (dateStr === activeDateStr || dateStr === currentDayStr) {
+                calculateSuccess();
+                loadStats();
+            }
+        }
+
+        /**
          * YENİ: Haftalık başarı oranını hesaplar.
          * tasks null ise, mevcut haftayı LS'den okur ve UI'ı günceller.
          * tasks doluysa, o görev listesi için oranı hesaplar ve döndürür.
@@ -1327,16 +1920,37 @@
                 return 0; // Başarı oranı
             }
 
-            const totalFrequency = tasks.reduce((sum, task) => sum + (task.frequency || 1), 0);
-            const totalCompleted = tasks.reduce((sum, task) => sum + task.completed, 0);
+            // Her görevin ne kadar tamamlandığını hesapla
+            let totalScore = 0;
+            let totalMaxScore = 0;
 
-            if (totalFrequency === 0) {
+            tasks.forEach(task => {
+                const freq = task.frequency || 1;
+                totalMaxScore += freq;
+
+                // Eğer alt görevler varsa, onlara göre hesapla
+                if (task.subtasks && task.subtasks.length > 0) {
+                    const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                    if (task.subtaskScoring === 'individual') {
+                        // Her alt görev ayrı ayrı puan (normalize et)
+                        totalScore += (completedSubtasks / task.subtasks.length) * freq;
+                    } else {
+                        // Hepsi birlikte 1 puan
+                        const score = completedSubtasks === task.subtasks.length ? 1 : (completedSubtasks > 0 ? 0.5 : 0);
+                        totalScore += score * freq;
+                    }
+                } else {
+                    // Normal: completed vs frequency
+                    totalScore += task.completed;
+                }
+            });
+
+            if (totalMaxScore === 0) {
                 if(updateUI) $("#weekly-success-rate").textContent = "0%";
                 return 0;
             }
             
-            const successRate = Math.round((totalCompleted / totalFrequency) * 100);
-            
+            const successRate = Math.round((totalScore / totalMaxScore) * 100);
             if (updateUI) {
                 $("#weekly-success-rate").textContent = `${successRate}%`;
             }
@@ -1366,13 +1980,26 @@
                 
                 const dateEl = document.createElement('div');
                 dateEl.className = 'p-4 bg-gray-50 rounded-lg shadow-sm';
+                const editable = daysDifferenceFromToday(date) <= EDITABLE_DAYS;
                 dateEl.innerHTML = `
-                    <h4 class="font-bold text-lg text-pink-500">${new Date(date + 'T00:00:00').toLocaleDateString('tr-TR', { weekday: 'long', day:'numeric', month:'long' })}</h4>
-                    <p class="text-sm font-semibold text-green-600 mb-2">Başarı: ${successRate}%</p>
-                    <ul class="list-disc list-inside ml-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="font-bold text-lg text-pink-500">${new Date(date + 'T00:00:00').toLocaleDateString('tr-TR', { weekday: 'long', day:'numeric', month:'long' })}</h4>
+                            <p class="text-sm font-semibold text-green-600 mb-2">Başarı: ${successRate}%</p>
+                        </div>
+                        <div>
+                            ${editable ? `<button class="edit-day-btn bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold py-1 px-3 rounded-lg">Düzenle</button>` : `<button class="bg-gray-200 text-gray-600 text-sm py-1 px-3 rounded-lg" disabled>Arşiv</button>`}
+                        </div>
+                    </div>
+                    <ul class="list-disc list-inside ml-2 mt-2">
                         ${tasks.map(t => `<li class="text-gray-700 ${t.status === 2 ? 'line-through' : ''} ${t.status === 0 ? 'opacity-60' : ''}">${t.title} (${t.type === 'ilmi' ? 'İlmi' : 'Dünyevi'} - ${t.status === 2 ? 'Tamam' : (t.status === 1 ? 'Yarım' : 'Yapılmadı')})</li>`).join('')}
                     </ul>
                 `;
+
+                if (editable) {
+                    const btn = dateEl.querySelector('.edit-day-btn');
+                    if (btn) btn.onclick = () => { setActiveDate(date); $("#history-modal").classList.add('hidden'); };
+                }
                 historyList.appendChild(dateEl);
             });
             
