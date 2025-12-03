@@ -149,6 +149,101 @@
             transform: translateY(-2px);
         }
 
+        /* Havuz butonu özel animasyonlu stil */
+        .pool-open-btn {
+            background: linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%);
+            color: white;
+            font-weight: 700;
+            border-radius: 0.75rem;
+            padding: 0.5rem 1rem;
+            box-shadow: 0 10px 25px rgba(166, 193, 238, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background-position 0.25s ease;
+            background-size: 200% 200%;
+            background-position: 50% 50%;
+        }
+        .pool-open-btn:hover {
+            transform: scale(1.08);
+            background-position: 100% 0%;
+            box-shadow: 0 14px 32px rgba(251, 194, 235, 0.45);
+        }
+
+        /* 2D Havuz ve Taşıyıcı Animasyonları */
+        .progress-scene { position: relative; min-height: 140px; }
+        .pool {
+            position: relative; width: 180px; height: 90px;
+            border: 3px solid rgba(0,0,0,0.08);
+            border-radius: 0.75rem 0.75rem 1.2rem 1.2rem;
+            overflow: hidden; margin: 0 auto;
+            background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.9));
+        }
+        .pool-water { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; transition: height 0.6s ease; }
+        .pool-water.daily { background: linear-gradient(180deg, rgba(16,185,129,0.7), rgba(16,185,129,0.9)); }
+        .pool-water.weekly { background: linear-gradient(180deg, rgba(59,130,246,0.7), rgba(59,130,246,0.9)); }
+        .carrier { position: absolute; bottom: 0; font-size: 1.6rem; animation: 4s ease-in-out infinite; display: inline-flex; align-items: center; gap: 6px; }
+        .carrier-left { left: 0; animation-name: walk-left; }
+        .carrier-right { right: 0; animation-name: walk-right; }
+        @keyframes walk-left { 0%{transform:translateX(0)} 50%{transform:translateX(40%)} 100%{transform:translateX(0)} }
+        @keyframes walk-right { 0%{transform:translateX(0)} 50%{transform:translateX(-40%)} 100%{transform:translateX(0)} }
+
+        /* Bucket + pour arc */
+        .bucket { width: 16px; height: 16px; border: 2px solid #4fd1c5; border-top-color: transparent; border-radius: 3px; position: relative; display: inline-block; }
+        .bucket::after { content: ""; position: absolute; right: -4px; top: 2px; width: var(--drop-size,6px); height: var(--drop-size,6px); border-radius: 50%; background: #4fd1c5; opacity: 0; transform: translate(0,0); }
+        .carrier.pour .bucket { transform: rotate(-12deg); transition: transform 200ms ease; }
+        .carrier.pour .bucket::after { opacity: 1; animation: drop-arc var(--drop-time,700ms) ease-in forwards; }
+        @keyframes drop-arc { 0% { transform: translate(0,0); opacity: 1; } 60% { transform: translate(var(--arc-x,22px),var(--arc-y,-22px)); opacity: 1; } 100% { transform: translate(calc(var(--arc-x,22px)*2),0); opacity: 0; } }
+        .pool::before { content: ""; position: absolute; left: 50%; bottom: 6px; width: 0; height: 0; border-radius: 50%; background: rgba(79,209,197,0.35); transform: translateX(-50%); opacity: 0; }
+        .pool.ripple::before { animation: ripple 600ms ease-out; }
+        @keyframes ripple { 0% { width: 0; height: 0; opacity: 0.7; } 100% { width: 140px; height: 44px; opacity: 0; } }
+
+        /* Damla animasyonu (havuz üzerine düşen su) */
+        .droplet-container { position: absolute; top: 0; left: 50%; width: 120px; height: 90px; transform: translateX(-50%); pointer-events: none; }
+        .droplet { position: absolute; top: -10px; width: 8px; height: 12px; background: rgba(59,130,246,0.8); border-radius: 50% 50% 60% 60%; opacity: 0.0; animation: drop 1.6s linear infinite; }
+        .droplet.green { background: rgba(16,185,129,0.8); }
+        @keyframes drop { 0%{ top:-10px; opacity:0 } 20%{ opacity:1 } 80%{ opacity:1 } 100%{ top:70px; opacity:0 } }
+
+        /* Eşiklerde sıçrama animasyonu */
+        .splash-container { position: absolute; bottom: 0; left: 50%; width: 160px; height: 40px; transform: translateX(-50%); pointer-events: none; }
+        .splash { position: absolute; bottom: 0; width: 6px; height: 6px; background: rgba(59,130,246,0.85); border-radius: 50%; opacity: 0; }
+        .splash.green { background: rgba(16,185,129,0.85); }
+        .splash.show { animation: splashUp 0.9s ease-out forwards; }
+        @keyframes splashUp {
+            0% { transform: translateY(0) scale(0.6); opacity: 0.0; }
+            30% { opacity: 1; }
+            60% { transform: translateY(-16px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(0) scale(0.8); opacity: 0; }
+        }
+
+        /* Celebration Modal */
+        .celebrate-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .celebrate-modal { position: relative; width: 90%; max-width: 640px; background: linear-gradient(180deg, #fff, #fff7fb); border: 2px solid #fbc2eb; border-radius: 1rem; box-shadow: 0 20px 60px rgba(166,193,238,0.35); overflow: hidden; }
+        .celebrate-header { background: linear-gradient(135deg, #fbc2eb, #a6c1ee); color: white; padding: 14px 18px; font-weight: 800; font-size: 1.35rem; letter-spacing: 0.5px; display:flex; align-items:center; justify-content:space-between; }
+        .celebrate-body { padding: 16px; }
+        .celebrate-message { position: relative; font-size: 1.1rem; color: #374151; line-height: 1.7; background: #fff; border: 1px solid #f3e8ff; border-radius: 0.75rem; padding: 12px 14px; box-shadow: 0 8px 20px rgba(166,193,238,0.18); }
+        .celebrate-source { margin-top: 8px; font-size: 0.9rem; color: #6b7280; }
+        /* Aura sparks orbiting the message */
+        .aura { position: absolute; inset: -8px; pointer-events: none; }
+        .aura .dot { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: radial-gradient(circle,#fff,#fbc2eb); opacity: 0.0; animation: drift 6s ease-in-out infinite; }
+        .aura .dot:nth-child(3n){ background: radial-gradient(circle,#fff,#a6c1ee); }
+        @keyframes drift {
+            0% { transform: translate(0,0); opacity: 0; }
+            10% { opacity: 0.6; }
+            50% { transform: translate(var(--dx, 12px), var(--dy, -8px)); opacity: 0.9; }
+            100% { transform: translate(0,0); opacity: 0; }
+        }
+        .celebrate-close { position: absolute; top: 8px; right: 12px; color: #fff; font-weight: 700; cursor: pointer; }
+        /* Fireworks */
+        .fireworks { position: absolute; inset: 0; pointer-events: none; overflow:hidden; }
+        .spark { position: absolute; width: var(--sz,4px); height: var(--sz,4px); background: var(--col,#ffd166); border-radius: 50%; opacity: 0; animation: pop var(--dur,1.6s) ease-out forwards; }
+        @keyframes pop { 0% { transform: translate(0,0) scale(0.8); opacity: 0; } 18% { opacity: 1; } 60% { transform: translate(var(--fx, 120px), var(--fy, -160px)) scale(1.2); opacity: 1; } 100% { opacity: 0; }
+        }
+        /* Candles */
+        .candles { display: flex; gap: 12px; justify-content: center; margin-top: 12px; }
+        .candle { width: 10px; height: 32px; background: #ffe5b4; border-radius: 3px; position: relative; box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
+        .candle::before { content: ""; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 8px; height: 10px; background: radial-gradient(circle at 50% 60%, #fff59d, #ffcc80); border-radius: 50%; filter: blur(0.5px); animation: flicker 1.2s ease-in-out infinite; }
+        @keyframes flicker { 0%,100% { transform: translateX(-50%) scale(1); opacity: 1; } 50% { transform: translateX(-50%) scale(1.08); opacity: 0.85; } }
+        /* Confetti Canvas */
+        #confetti { position:absolute; inset:0; pointer-events:none; }
+
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800">
@@ -164,6 +259,7 @@
                 <button id="prev-day-btn" class="bg-white/80 hover:bg-white text-gray-700 font-bold py-1 px-3 rounded-lg shadow-sm">◀</button>
                 <div id="active-date-label" class="text-sm text-gray-600"></div>
                 <button id="next-day-btn" class="bg-white/80 hover:bg-white text-gray-700 font-bold py-1 px-3 rounded-lg shadow-sm">▶</button>
+                <button id="open-pool-btn" class="pool-open-btn ml-3" title="Görev Havuzunu Aç">Görev Havuzu</button>
             </div>
         </header>
 
@@ -180,20 +276,7 @@
                     </button>
                 </div>
 
-                <!-- Görev Ekleme Formu -->
-                <div class="glass-bg task-box rounded-xl shadow-lg p-4">
-                    <h3 class="text-xl font-semibold mb-3 text-pink-600">Yeni Görev Ekle</h3>
-                    <div class="flex flex-wrap gap-4">
-                        <input type="text" id="new-task-title" placeholder="Görev adı..." class="flex-grow p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-300">
-                        <select id="new-task-type" class="p-2 border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-pink-300">
-                            <option value="dunyevi">Dünyevi İş</option>
-                            <option value="ilmi">İlmi İş</option>
-                            <option value="haftalik">Haftalık İş</option>
-                        </select>
-                        <input type="number" id="new-task-frequency" placeholder="Haftada kaç kez?" min="1" class="p-2 border rounded-lg bg-white w-24 focus:outline-none focus:ring-2 focus:ring-pink-300 hidden">
-                        <button id="add-task-btn" class="bg-blue-400 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-300">Ekle</button>
-                    </div>
-                </div>
+                <!-- Başarı Oranları üst şerit kaldırıldı; başarı havuzları sütun başlıklarına taşındı -->
 
                 <!-- Görev Düzenleme Modal (Yeni) -->
                 <div id="task-edit-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -244,90 +327,17 @@
                     </div>
                 </div>
 
-                <!-- Görev Listeleri Sekmeleri -->
-                <div class="glass-bg task-box rounded-xl shadow-lg p-4">
-                    <div class="flex border-b border-gray-300 mb-4">
-                        <button class="tab-btn active-tab py-2 px-4 font-semibold text-blue-600 border-b-2 border-blue-600" data-tab="gunluk">Günlük Görevler</button>
-                        <button class="tab-btn py-2 px-4 font-semibold text-gray-500" data-tab="haftalik">Haftalık Görevler</button>
-                        <button class="tab-btn py-2 px-4 font-semibold text-gray-500" data-tab="istatistik">İstatistikler</button>
-                    </div>
-
-                    <!-- Günlük Görevler Paneli -->
-                    <div id="gunluk-tab" class="tab-content space-y-6">
-                        <!-- Dünyevi İşler -->
-                        <div>
-                            <h2 class="text-2xl font-bold text-blue-700 mb-3">Dünyevi İşler</h2>
-                            <div id="dunyevi-tasks" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                <!-- Görevler buraya eklenecek -->
-                            </div>
-                        </div>
-                        <!-- İlmi İşler -->
-                        <div>
-                            <h2 class="text-2xl font-bold text-purple-700 mb-3">İlmi İşler</h2>
-                            <div id="ilmi-tasks" class="space-y-3 max-h-60 overflow-y-auto pr-2">
-                                <!-- Görevler buraya eklenecek -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Haftalık Görevler Paneli -->
-                    <div id="haftalik-tab" class="tab-content hidden space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                        <h2 class="text-2xl font-bold text-green-700 mb-3">Haftalık Görevler</h2>
-                        <div id="haftalik-tasks" class="space-y-3">
-                            <!-- Haftalık görevler buraya eklenecek -->
-                        </div>
-                    </div>
-
-                    <!-- GÜNCELLENDİ: İstatistik Paneli -->
-                    <div id="istatistik-tab" class="tab-content hidden">
-                        <h2 class="text-2xl font-bold text-indigo-700 mb-3">Başarı Grafikleri</h2>
-                        
-                        <!-- YENİ: İstatistik Sekmeleri (Günlük/Haftalık) -->
-                        <div class="flex border-b border-gray-200 mb-3">
-                            <button class="stats-tab-btn py-2 px-4 font-semibold text-indigo-600 border-b-2 border-indigo-600" data-stats-tab="daily-chart">Günlük Eğri</button>
-                            <button class="stats-tab-btn py-2 px-4 font-semibold text-gray-500" data-stats-tab="weekly-chart">Haftalık Eğri</button>
-                        </div>
-            
-                        <!-- YENİ: Grafik Konteynerları -->
-                        <div id="daily-chart-tab" class="stats-tab-content w-full h-80">
-                            <canvas id="daily-stats-chart"></canvas>
-                        </div>
-                        <div id="weekly-chart-tab" class="stats-tab-content hidden w-full h-80">
-                            <canvas id="weekly-stats-chart"></canvas>
-                        </div>
-                        <div id="no-stats-message" class="hidden text-gray-500 p-4">İstatistik verisi toplandıkça burada görünecek...</div>
-                    </div>
-                    <!-- / İstatistik Paneli -->
-
-                </div>
+                
 
             </div>
 
             <!-- Sağ Panel (Kümeler ve Diğerleri) -->
             <div class="lg:col-span-1 space-y-6">
 
-                <!-- Görev Kümeleri (Havuz) -->
-                <div class="glass-bg pool-box rounded-xl shadow-lg p-4">
-                    <h2 class="text-2xl font-bold text-pink-600 mb-4">Görev Kümeleri (Havuz)</h2>
-                    <div class="flex border-b border-gray-300 mb-4">
-                        <button class="pool-tab-btn active-tab py-2 px-4 font-semibold text-blue-600 border-b-2 border-blue-600" data-pool-tab="dunyevi-pool-tab">Dünyevi</button>
-                        <button class="pool-tab-btn py-2 px-4 font-semibold text-gray-500" data-pool-tab="ilmi-pool-tab">İlmi</button>
-                        <button class="pool-tab-btn py-2 px-4 font-semibold text-gray-500" data-pool-tab="haftalik-pool-tab">Haftalık</button>
-                    </div>
-
-                    <div id="dunyevi-pool-tab" class="pool-tab-content space-y-2 max-h-48 overflow-y-auto pr-2">
-                        <!-- Dünyevi küme görevleri -->
-                    </div>
-                    <div id="ilmi-pool-tab" class="pool-tab-content hidden space-y-2 max-h-48 overflow-y-auto pr-2">
-                        <!-- İlmi küme görevleri -->
-                    </div>
-                    <div id="haftalik-pool-tab" class="pool-tab-content hidden space-y-2 max-h-48 overflow-y-auto pr-2">
-                        <!-- Haftalık küme görevleri -->
-                    </div>
-                </div>
+                
 
                 <!-- Ali Murtaza Koçak Nöbet Takibi (İstek 8) - GÜNCELLENDİ -->
-                <div class="glass-bg pool-box rounded-xl shadow-lg p-4">
+                <div id="rota-card" class="glass-bg pool-box rounded-xl shadow-lg p-4">
                     <h2 class="text-2xl font-bold text-gray-700 mb-3">Nöbet Takibi</h2>
                     
                     <!-- YENİ: Nöbet ismi girişi -->
@@ -348,20 +358,157 @@
                     </div>
                 </div>
 
-                <!-- Başarı Oranı (İstek 11) -->
-                <div class="glass-bg pool-box rounded-xl shadow-lg p-4 text-center">
-                    <h2 class="text-2xl font-bold text-green-600 mb-2">Günlük Başarı</h2>
-                    <div id="success-rate" class="text-5xl font-bold text-green-500">0%</div>
-                </div>
-
-                <!-- YENİ: Haftalık Başarı Oranı -->
-                <div class="glass-bg pool-box rounded-xl shadow-lg p-4 text-center">
-                    <h2 class="text-2xl font-bold text-blue-600 mb-2">Haftalık Başarı</h2>
-                    <div id="weekly-success-rate" class="text-5xl font-bold text-blue-500">0%</div>
-                </div>
+                
             </div>
 
         </main>
+
+        <!-- Üç Sütun Görev Takip Alanı -->
+        <section class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Günlük Dünyevi -->
+            <div class="glass-bg task-box rounded-xl shadow-lg p-4 border border-blue-300">
+                <div class="flex items-center justify-between mb-3 bg-gradient-to-r from-blue-100 to-blue-50 rounded-lg px-3 py-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🏡</span>
+                        <h2 class="text-2xl font-bold text-blue-700">Dünyevi Görevler</h2>
+                    </div>
+                    <span class="text-xs font-semibold text-blue-700 bg-white/70 rounded-full px-2 py-1 shadow-sm">Günlük</span>
+                </div>
+                <!-- Dünyevi Başarı Havuzu (sütunla hizalı) -->
+                <div class="progress-scene mb-3">
+                    <div id="daily-dunyevi-carrier-left" class="carrier carrier-left"><span>🧕</span><span class="bucket"></span></div>
+                    <div id="daily-dunyevi-carrier-right" class="carrier carrier-right"><span>🧕</span><span class="bucket"></span></div>
+                    <div class="mx-auto pool">
+                        <div id="daily-dunyevi-pool-water" class="pool-water daily"></div>
+                        <div class="droplet-container">
+                            <span class="droplet green" style="left:10px; animation-delay:0s"></span>
+                            <span class="droplet green" style="left:40px; animation-delay:0.4s"></span>
+                            <span class="droplet green" style="left:70px; animation-delay:0.8s"></span>
+                        </div>
+                        <div class="splash-container">
+                            <span id="daily-dunyevi-splash-25" class="splash green" style="left:20px"></span>
+                            <span id="daily-dunyevi-splash-50" class="splash green" style="left:60px"></span>
+                            <span id="daily-dunyevi-splash-75" class="splash green" style="left:100px"></span>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2 text-xs text-green-900/80">
+                        <span id="daily-dunyevi-success-rate">0%</span>
+                    </div>
+                </div>
+                <div id="dunyevi-tasks-col" class="space-y-3 max-h-[70vh] overflow-y-auto pr-2"></div>
+                <div class="mt-3 flex items-center gap-2">
+                    <button id="add-dunyevi-btn" class="text-2xl text-blue-600 hover:scale-110 transition">＋</button>
+                    <input type="text" id="add-dunyevi-input" placeholder="Yeni dünyevi görev..." class="hidden flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300">
+                    <input type="number" id="add-dunyevi-count" min="1" value="1" title="Günde kaç kez" class="hidden w-16 ml-2 p-2 border rounded-lg">
+                    <button id="add-dunyevi-confirm" class="hidden ml-2 px-3 py-2 bg-blue-600 text-white rounded">Ekle</button>
+                </div>
+            </div>
+            <!-- Günlük İlmi -->
+            <div class="glass-bg task-box rounded-xl shadow-lg p-4 border border-purple-300">
+                <div class="flex items-center justify-between mb-3 bg-gradient-to-r from-purple-100 to-purple-50 rounded-lg px-3 py-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">📚</span>
+                        <h2 class="text-2xl font-bold text-purple-700">İlmi Görevler</h2>
+                    </div>
+                    <span class="text-xs font-semibold text-purple-700 bg-white/70 rounded-full px-2 py-1 shadow-sm">Günlük</span>
+                </div>
+                <!-- İlmi Başarı Havuzu (sütunla hizalı) -->
+                <div class="progress-scene mb-3">
+                    <div id="daily-ilmi-carrier-left" class="carrier carrier-left"><span>🧕</span><span class="bucket"></span></div>
+                    <div id="daily-ilmi-carrier-right" class="carrier carrier-right"><span>🧕</span><span class="bucket"></span></div>
+                    <div class="mx-auto pool">
+                        <div id="daily-ilmi-pool-water" class="pool-water daily"></div>
+                        <div class="droplet-container">
+                            <span class="droplet indigo" style="left:10px; animation-delay:0.1s"></span>
+                            <span class="droplet indigo" style="left:45px; animation-delay:0.5s"></span>
+                            <span class="droplet indigo" style="left:80px; animation-delay:0.9s"></span>
+                        </div>
+                        <div class="splash-container">
+                            <span id="daily-ilmi-splash-25" class="splash indigo" style="left:20px"></span>
+                            <span id="daily-ilmi-splash-50" class="splash indigo" style="left:60px"></span>
+                            <span id="daily-ilmi-splash-75" class="splash indigo" style="left:100px"></span>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2 text-xs text-indigo-900/80">
+                        <span id="daily-ilmi-success-rate">0%</span>
+                    </div>
+                </div>
+                <div id="ilmi-tasks-col" class="space-y-3 max-h-[70vh] overflow-y-auto pr-2"></div>
+                <div class="mt-3 flex items-center gap-2">
+                    <button id="add-ilmi-btn" class="text-2xl text-purple-600 hover:scale-110 transition">＋</button>
+                    <input type="text" id="add-ilmi-input" placeholder="Yeni ilmi görev..." class="hidden flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300">
+                    <input type="number" id="add-ilmi-count" min="1" value="1" title="Günde kaç kez" class="hidden w-16 ml-2 p-2 border rounded-lg">
+                    <button id="add-ilmi-confirm" class="hidden ml-2 px-3 py-2 bg-purple-600 text-white rounded">Ekle</button>
+                </div>
+            </div>
+            <!-- Haftalık -->
+            <div class="glass-bg task-box rounded-xl shadow-lg p-4 border-green-300">
+                <div class="flex items-center justify-between mb-3 bg-gradient-to-r from-green-100 to-green-50 rounded-lg px-3 py-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">🗓️</span>
+                        <h2 class="text-2xl font-bold text-green-700">Haftalık Görevler</h2>
+                    </div>
+                    <span class="text-xs font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm">Haftalık</span>
+                </div>
+                <!-- Haftalık Başarı Havuzu (sütunla hizalı) -->
+                <div class="progress-scene mb-3">
+                    <div id="weekly-carrier-left" class="carrier carrier-left"><span>🧕</span><span class="bucket"></span></div>
+                    <div id="weekly-carrier-right" class="carrier carrier-right"><span>🧕</span><span class="bucket"></span></div>
+                    <div class="mx-auto pool">
+                        <div id="weekly-pool-water" class="pool-water weekly"></div>
+                        <div class="droplet-container">
+                            <span class="droplet" style="left:20px; animation-delay:0.2s"></span>
+                            <span class="droplet" style="left:60px; animation-delay:0.6s"></span>
+                            <span class="droplet" style="left:90px; animation-delay:1s"></span>
+                        </div>
+                        <div class="splash-container">
+                            <span id="weekly-splash-25" class="splash" style="left:25px"></span>
+                            <span id="weekly-splash-50" class="splash" style="left:80px"></span>
+                            <span id="weekly-splash-75" class="splash" style="left:120px"></span>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2 text-xs text-blue-900/80">
+                        <span id="weekly-success-rate">0%</span>
+                    </div>
+                </div>
+                <div id="haftalik-tasks-col" class="space-y-3 max-h-[70vh] overflow-y-auto pr-2"></div>
+                <div class="mt-3 flex items-center gap-2">
+                    <button id="add-haftalik-btn" class="text-2xl text-green-600 hover:scale-110 transition">＋</button>
+                    <input type="text" id="add-haftalik-input" placeholder="Yeni haftalık görev..." class="hidden flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300">
+                    <input type="number" id="add-haftalik-count" min="1" value="1" title="Haftada kaç kez" class="hidden w-20 ml-2 p-2 border rounded-lg">
+                    <button id="add-haftalik-confirm" class="hidden ml-2 px-3 py-2 bg-green-600 text-white rounded">Ekle</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Celebration Modal -->
+        <div id="celebrate-backdrop" class="celebrate-backdrop">
+            <div class="celebrate-modal">
+                <div class="celebrate-header">
+                    <span>Tebrikler! Günün Tüm Görevleri Tamamlandı 🎉</span>
+                    <button id="celebrate-close" class="celebrate-close">✕</button>
+                </div>
+                <div class="celebrate-body">
+                    <div id="celebrate-message" class="celebrate-message">
+                        <div class="aura" id="celebrate-aura"></div>
+                        <div id="celebrate-text"></div>
+                        <div id="celebrate-source" class="celebrate-source"></div>
+                    </div>
+                    <div class="candles">
+                        <div class="candle"></div>
+                        <div class="candle"></div>
+                        <div class="candle"></div>
+                    </div>
+                    <canvas id="confetti"></canvas>
+                    <div class="fireworks" id="fireworks"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Görsel ayırıcı -->
+        <hr class="mt-8 border-gray-300">
+        <!-- Alt ikili bölüm: Nöbet ve Günün Sözü yan yana -->
+        <section id="bottom-duo" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6"></section>
 
         <!-- Alt Bölüm -->
         <footer class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -456,6 +603,24 @@
         </div>
     </div>
     
+    <!-- Görev Havuzu Modal -->
+    <div id="pool-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-pink-600">Görev Havuzu</h3>
+                <button id="pool-modal-close-btn" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div class="flex border-b border-gray-300 mb-4">
+                <button class="pool-tab-btn active-tab py-2 px-4 font-semibold text-blue-600 border-b-2 border-blue-600" data-pool-tab="modal-dunyevi-pool">Dünyevi</button>
+                <button class="pool-tab-btn py-2 px-4 font-semibold text-gray-500" data-pool-tab="modal-ilmi-pool">İlmi</button>
+                <button class="pool-tab-btn py-2 px-4 font-semibold text-gray-500" data-pool-tab="modal-haftalik-pool">Haftalık</button>
+            </div>
+            <div id="modal-dunyevi-pool" class="pool-tab-content space-y-2 max-h-[60vh] overflow-y-auto pr-2"></div>
+            <div id="modal-ilmi-pool" class="pool-tab-content hidden space-y-2 max-h-[60vh] overflow-y-auto pr-2"></div>
+            <div id="modal-haftalik-pool" class="pool-tab-content hidden space-y-2 max-h-[60vh] overflow-y-auto pr-2"></div>
+        </div>
+    </div>
+    
     <!-- Geçmiş Günler Modal (İstek 9) -->
     <div id="history-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full h-[70vh]">
@@ -487,7 +652,7 @@
         // Aktif düzenlenen tarih (varsayılan: bugün). Kullanıcı önceki günlere gezinebilir.
         let activeDateStr = currentDayStr;
         // Kaç güne kadar geriye düzenleme izni var
-        const EDITABLE_DAYS = 7;
+        const EDITABLE_DAYS = Infinity; // Geçmişe sınırsız düzenleme izni
 
         // Yerel Depolama için anahtar öneki
         const LS_PREFIX = 'YSZ_';
@@ -577,7 +742,7 @@
 
         function isActiveDateEditable() {
             const diff = daysDifferenceFromToday(activeDateStr);
-            return diff >= 0 && diff <= EDITABLE_DAYS;
+            return diff >= 0; // Geçmiş tarihler düzenlenebilir, gelecek değil
         }
 
         function updateDateDisplay() {
@@ -589,7 +754,7 @@
                 label.textContent = `Bugün — ${formatLongDate(activeDateStr)}`;
             } else {
                 const editable = isActiveDateEditable();
-                label.textContent = `${formatLongDate(activeDateStr)} ${editable ? '(Düzenlenebilir)' : '(Arşiv - Salt okunur)'} `;
+                label.textContent = `${formatLongDate(activeDateStr)} ${editable ? '(Düzenlenebilir)' : '(Gelecek - Salt okunur)'} `;
             }
 
             // Form kontrollerini aktive/pasif yap
@@ -682,6 +847,28 @@
 
             // Event Listeners (UI)
             setupEventListeners();
+
+            // Nöbet ve Günün Sözü kartlarını alt ikili bölüme taşı
+            try {
+                const duo = document.getElementById('bottom-duo');
+                const rotaCard = document.getElementById('rota-card');
+                const quoteCard = document.getElementById('quote-box');
+                if (duo && rotaCard && quoteCard) {
+                    duo.appendChild(rotaCard);
+                    duo.appendChild(quoteCard);
+                }
+            } catch (e) { console.warn('Alt ikili bölüme taşıma başarısız:', e); }
+
+            // Eski havuz ve sekmeli görev kutularını gizle (temiz arayüz için)
+            try {
+                // Eski sekmeli görev kutusu: tab-btn içerir
+                const oldTabsBox = Array.from(document.querySelectorAll('.task-box')).find(box => box.querySelector('.tab-btn'));
+                if (oldTabsBox) oldTabsBox.classList.add('hidden');
+
+                // Eski havuz kutusu: pool-tab-btn içerir
+                const oldPoolBox = Array.from(document.querySelectorAll('.pool-box')).find(box => box.querySelector('.pool-tab-btn'));
+                if (oldPoolBox) oldPoolBox.classList.add('hidden');
+            } catch (e) { console.warn('Eski UI gizleme başarısız:', e); }
         }
 
         // Başlangıçta aktif tarihi ayarla (UI başlatma)
@@ -830,7 +1017,8 @@
                 const history = lsGet('history', {});
                 if (history && history[activeDateStr]) {
                     tasks = history[activeDateStr];
-                    readOnly = true; // Arşivlenmiş kayıt, salt okunur
+                    // Geçmiş günler artık düzenlenebilir, sadece gelecek günler salt okunur
+                    readOnly = !isActiveDateEditable();
                 }
             }
             tasks = tasks || [];
@@ -847,9 +1035,13 @@
         }
 
         function loadPools() {
-            renderPool(lsGet('pools_dunyevi', []), 'dunyevi-pool-tab');
-            renderPool(lsGet('pools_ilmi', []), 'ilmi-pool-tab');
-            renderPool(lsGet('pools_haftalik', []), 'haftalik-pool-tab');
+            const dun = lsGet('pools_dunyevi', []);
+            const ilm = lsGet('pools_ilmi', []);
+            const haf = lsGet('pools_haftalik', []);
+            // Render only modal pools (yeni arayüz)
+            renderPool(dun, 'modal-dunyevi-pool');
+            renderPool(ilm, 'modal-ilmi-pool');
+            renderPool(haf, 'modal-haftalik-pool');
         }
 
         function loadStats() {
@@ -900,8 +1092,8 @@
         // --- RENDER (GÖRÜNÜM) FONKSİYONLARI ---
 
         function renderDailyTasks(dunyevi, ilmi, readOnly = false) {
-            const dunyeviContainer = $("#dunyevi-tasks");
-            const ilmiContainer = $("#ilmi-tasks");
+            const dunyeviContainer = document.querySelector("#dunyevi-tasks-col") || $("#dunyevi-tasks");
+            const ilmiContainer = document.querySelector("#ilmi-tasks-col") || $("#ilmi-tasks");
             
             dunyeviContainer.innerHTML = dunyevi.length ? '' : '<p class="text-gray-400 italic">Dünyevi görev yok.</p>';
             ilmiContainer.innerHTML = ilmi.length ? '' : '<p class="text-gray-400 italic">İlmi görev yok.</p>';
@@ -911,7 +1103,7 @@
         }
 
         function renderWeeklyTasks(tasks) {
-            const container = $("#haftalik-tasks");
+            const container = document.querySelector("#haftalik-tasks-col") || $("#haftalik-tasks");
             container.innerHTML = tasks.length ? '' : '<p class="text-gray-400 italic">Haftalık görev yok.</p>';
             tasks.forEach(task => container.appendChild(createTaskElement(task, 'weekly')));
         }
@@ -930,8 +1122,16 @@
                 el.dataset.id = task.id;
                 el.dataset.title = task.title;
                 
+                const hasSubtasks = Array.isArray(task.subtasks) && task.subtasks.length > 0;
+                const subtasksPreview = hasSubtasks
+                    ? `<div class="mt-1 text-xs text-gray-500 leading-snug">• ${task.subtasks.map(st => st.title).join(' • ')}</div>`
+                    : '';
+
                 el.innerHTML = `
-                    <span class="flex-grow text-gray-700">${task.title}</span>
+                    <div class="flex-grow">
+                        <span class="text-gray-700">${task.title}</span>
+                        ${subtasksPreview}
+                    </div>
                     <button class="toggle-default-btn text-lg ${task.isDefault ? 'text-yellow-500' : 'text-gray-300'}" title="Varsayılan olarak ayarla">
                         ${task.isDefault ? '★' : '☆'}
                     </button>
@@ -1228,20 +1428,201 @@
          * Tüm UI event listener'larını ayarlar.
          */
         function setupEventListeners() {
-            // Görev Ekleme
-            $("#add-task-btn").onclick = handleAddTask;
-            $("#new-task-title").onkeydown = (e) => {
-                if(e.key === 'Enter') handleAddTask();
-            };
-            
-            // Görev Tipi Seçimi (Haftalık için frekans gösterme) (İstek 5)
-            $("#new-task-type").onchange = (e) => {
-                if (e.target.value === 'haftalik') {
-                    $("#new-task-frequency").classList.remove('hidden');
-                } else {
-                    $("#new-task-frequency").classList.add('hidden');
+            // Sütun başına hızlı ekleme
+            const addDunyeviBtn = $("#add-dunyevi-btn");
+            const addDunyeviInput = $("#add-dunyevi-input");
+            const addDunyeviCount = $("#add-dunyevi-count");
+            const addDunyeviConfirm = $("#add-dunyevi-confirm");
+            if (addDunyeviBtn && addDunyeviInput) {
+                // Step 1: Plus shows text input only
+                addDunyeviBtn.onclick = () => {
+                    addDunyeviInput.classList.remove('hidden');
+                    if (addDunyeviCount) addDunyeviCount.classList.add('hidden');
+                    if (addDunyeviConfirm) addDunyeviConfirm.classList.add('hidden');
+                    addDunyeviInput.focus();
+                };
+                // Step 2: Enter on text reveals count and focuses it (single handler; remove conflicting legacy ones)
+                addDunyeviInput.onkeyup = (e) => {
+                    if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.keyCode === 13) {
+                        e.preventDefault();
+                        if (!addDunyeviInput.value.trim()) return;
+                        if (addDunyeviCount) {
+                            addDunyeviCount.classList.remove('hidden');
+                            addDunyeviCount.focus();
+                            addDunyeviCount.select();
+                            if (addDunyeviConfirm) addDunyeviConfirm.classList.remove('hidden');
+                        } else {
+                            // Fallback: add with default count
+                            quickAddDailyTask(addDunyeviInput.value.trim(), 'dunyevi', 1);
+                        }
+                    }
+                };
+                // Ensure no legacy handlers interfere
+                addDunyeviInput.onkeydown = null;
+                addDunyeviInput.onkeypress = null;
+                addDunyeviInput.removeEventListener && addDunyeviInput.removeEventListener('compositionend', () => {});
+                // Step 3: Enter on count adds the task
+                if (addDunyeviCount) {
+                    addDunyeviCount.onkeyup = (e) => {
+                        if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.keyCode === 13) {
+                            e.preventDefault();
+                            const title = addDunyeviInput.value.trim();
+                            if (!title) return;
+                            const count = Math.max(1, parseInt(addDunyeviCount.value || '1', 10));
+                            quickAddDailyTask(title, 'dunyevi', count);
+                            if (addDunyeviConfirm) addDunyeviConfirm.classList.add('hidden');
+                        }
+                    };
+                    // Fallback: blur or change also adds
+                    addDunyeviCount.onchange = () => {
+                        const title = addDunyeviInput.value.trim();
+                        if (!title) return;
+                        const count = Math.max(1, parseInt(addDunyeviCount.value || '1', 10));
+                        quickAddDailyTask(title, 'dunyevi', count);
+                    };
+                    addDunyeviCount.onblur = () => {
+                        const title = addDunyeviInput.value.trim();
+                        if (!title) return;
+                        const count = Math.max(1, parseInt(addDunyeviCount.value || '1', 10));
+                        quickAddDailyTask(title, 'dunyevi', count);
+                    };
+                    if (addDunyeviConfirm) {
+                        addDunyeviConfirm.onclick = () => {
+                            const title = addDunyeviInput.value.trim();
+                            if (!title) return;
+                            const count = Math.max(1, parseInt(addDunyeviCount.value || '1', 10));
+                            quickAddDailyTask(title, 'dunyevi', count);
+                            addDunyeviConfirm.classList.add('hidden');
+                        };
+                    }
                 }
-            };
+            }
+            const addIlmiBtn = $("#add-ilmi-btn");
+            const addIlmiInput = $("#add-ilmi-input");
+            const addIlmiCount = $("#add-ilmi-count");
+            const addIlmiConfirm = $("#add-ilmi-confirm");
+            if (addIlmiBtn && addIlmiInput) {
+                // Step 1: Plus shows text input only
+                addIlmiBtn.onclick = () => {
+                    addIlmiInput.classList.remove('hidden');
+                    if (addIlmiCount) addIlmiCount.classList.add('hidden');
+                    if (addIlmiConfirm) addIlmiConfirm.classList.add('hidden');
+                    addIlmiInput.focus();
+                };
+                // Step 2: Enter on text reveals count and focuses it (single handler)
+                addIlmiInput.onkeyup = (e) => {
+                    if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.keyCode === 13) {
+                        e.preventDefault();
+                        if (!addIlmiInput.value.trim()) return;
+                        if (addIlmiCount) {
+                            addIlmiCount.classList.remove('hidden');
+                            addIlmiCount.focus();
+                            addIlmiCount.select();
+                            if (addIlmiConfirm) addIlmiConfirm.classList.remove('hidden');
+                        } else {
+                            quickAddDailyTask(addIlmiInput.value.trim(), 'ilmi', 1);
+                        }
+                    }
+                };
+                // Remove legacy interference
+                addIlmiInput.onkeydown = null;
+                addIlmiInput.onkeypress = null;
+                addIlmiInput.removeEventListener && addIlmiInput.removeEventListener('compositionend', () => {});
+                // Step 3: Enter on count adds the task
+                if (addIlmiCount) {
+                    addIlmiCount.onkeyup = (e) => {
+                        if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.keyCode === 13) {
+                            e.preventDefault();
+                            const title = addIlmiInput.value.trim();
+                            if (!title) return;
+                            const count = Math.max(1, parseInt(addIlmiCount.value || '1', 10));
+                            quickAddDailyTask(title, 'ilmi', count);
+                            if (addIlmiConfirm) addIlmiConfirm.classList.add('hidden');
+                        }
+                    };
+                    addIlmiCount.onchange = () => {
+                        const title = addIlmiInput.value.trim();
+                        if (!title) return;
+                        const count = Math.max(1, parseInt(addIlmiCount.value || '1', 10));
+                        quickAddDailyTask(title, 'ilmi', count);
+                    };
+                    addIlmiCount.onblur = () => {
+                        const title = addIlmiInput.value.trim();
+                        if (!title) return;
+                        const count = Math.max(1, parseInt(addIlmiCount.value || '1', 10));
+                        quickAddDailyTask(title, 'ilmi', count);
+                    };
+                    if (addIlmiConfirm) {
+                        addIlmiConfirm.onclick = () => {
+                            const title = addIlmiInput.value.trim();
+                            if (!title) return;
+                            const count = Math.max(1, parseInt(addIlmiCount.value || '1', 10));
+                            quickAddDailyTask(title, 'ilmi', count);
+                            addIlmiConfirm.classList.add('hidden');
+                        };
+                    }
+                }
+            }
+            const addHaftalikBtn = $("#add-haftalik-btn");
+            const addHaftalikInput = $("#add-haftalik-input");
+            const addHaftalikCount = $("#add-haftalik-count");
+            const addHaftalikConfirm = $("#add-haftalik-confirm");
+            if (addHaftalikBtn && addHaftalikInput) {
+                // Step 1: Plus shows text input only
+                addHaftalikBtn.onclick = () => {
+                    addHaftalikInput.classList.remove('hidden');
+                    if (addHaftalikCount) addHaftalikCount.classList.add('hidden');
+                    if (addHaftalikConfirm) addHaftalikConfirm.classList.add('hidden');
+                    addHaftalikInput.focus();
+                };
+                // Step 2: Enter on text reveals count and focuses it
+                addHaftalikInput.onkeyup = (e) => {
+                    if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.keyCode === 13) {
+                        e.preventDefault();
+                        if (!addHaftalikInput.value.trim()) return;
+                        if (addHaftalikCount) {
+                            addHaftalikCount.classList.remove('hidden');
+                            addHaftalikCount.focus();
+                            addHaftalikCount.select();
+                            if (addHaftalikConfirm) addHaftalikConfirm.classList.remove('hidden');
+                        } else {
+                            quickAddWeeklyTask(addHaftalikInput.value.trim(), 1);
+                        }
+                    }
+                };
+                // Step 3: Enter/change/blur on count adds the task
+                if (addHaftalikCount) {
+                    addHaftalikCount.onkeyup = (e) => {
+                        if (e.key === 'Enter' || e.key === 'NumpadEnter' || e.keyCode === 13) {
+                            e.preventDefault();
+                            const title = addHaftalikInput.value.trim();
+                            if (!title) return;
+                            const count = Math.max(1, parseInt(addHaftalikCount.value || '1', 10));
+                            quickAddWeeklyTask(title, count);
+                        }
+                    };
+                    addHaftalikCount.onchange = () => {
+                        const title = addHaftalikInput.value.trim();
+                        if (!title) return;
+                        const count = Math.max(1, parseInt(addHaftalikCount.value || '1', 10));
+                        quickAddWeeklyTask(title, count);
+                    };
+                    addHaftalikCount.onblur = () => {
+                        const title = addHaftalikInput.value.trim();
+                        if (!title) return;
+                        const count = Math.max(1, parseInt(addHaftalikCount.value || '1', 10));
+                        quickAddWeeklyTask(title, count);
+                    };
+                    if (addHaftalikConfirm) {
+                        addHaftalikConfirm.onclick = () => {
+                            const title = addHaftalikInput.value.trim();
+                            if (!title) return;
+                            const count = Math.max(1, parseInt(addHaftalikCount.value || '1', 10));
+                            quickAddWeeklyTask(title, count);
+                        };
+                    }
+                }
+            }
             
             // Ana Sekme Değişimi
             $$(".tab-btn").forEach(btn => {
@@ -1314,6 +1695,17 @@
             $("#show-history-btn").onclick = showHistoryModal;
             $("#history-modal-close-btn").onclick = () => $("#history-modal").classList.add('hidden');
 
+            // Havuz Modal aç/kapat
+            const openPoolBtn = $("#open-pool-btn");
+            if (openPoolBtn) openPoolBtn.onclick = () => {
+                $("#pool-modal").classList.remove('hidden');
+                loadPools();
+            };
+            const poolCloseBtn = $("#pool-modal-close-btn");
+            if (poolCloseBtn) poolCloseBtn.onclick = () => $("#pool-modal").classList.add('hidden');
+            const poolModal = document.getElementById("pool-modal");
+            if (poolModal) poolModal.onclick = (e) => { if (e.target.id === "pool-modal") poolModal.classList.add('hidden'); };
+
             // Tarih gezinme butonları
             const prevBtn = $("#prev-day-btn");
             const nextBtn = $("#next-day-btn");
@@ -1333,6 +1725,64 @@
             document.getElementById("task-edit-modal").onclick = (e) => {
                 if (e.target.id === "task-edit-modal") closeTaskEditModal();
             };
+        }
+
+        // Hızlı ekleme yardımcıları
+        function quickAddDailyTask(title, type, repetitionCount = 1) {
+            if (!title) return;
+            if (!isActiveDateEditable()) {
+                showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece geçmiş veya bugün düzenlenebilir.');
+                return;
+            }
+            const key = `tasks_daily_${activeDateStr}`;
+            const tasks = lsGet(key, []);
+            const exists = tasks.some(t => t.title === title && t.type === type);
+            if (exists) return;
+            tasks.push({
+                id: Date.now().toString(),
+                title,
+                type,
+                status: 0,
+                repetitionCount: Math.max(1, parseInt(repetitionCount, 10) || 1),
+                repetitionCompleted: 0,
+                subtasks: [],
+                subtaskScoring: 'grouped'
+            });
+            persistDailyState(activeDateStr, tasks);
+            loadDailyTasks();
+            // Girdileri temizle ve gizle
+            if (type === 'dunyevi') {
+                const i = $("#add-dunyevi-input"); const c = $("#add-dunyevi-count");
+                if (i) { i.value=''; i.classList.add('hidden'); }
+                if (c) { c.value='1'; c.classList.add('hidden'); }
+            }
+            if (type === 'ilmi') {
+                const i = $("#add-ilmi-input"); const c = $("#add-ilmi-count");
+                if (i) { i.value=''; i.classList.add('hidden'); }
+                if (c) { c.value='1'; c.classList.add('hidden'); }
+            }
+        }
+
+        function quickAddWeeklyTask(title, frequency = 1) {
+            if (!title) return;
+            const key = `tasks_weekly_${currentWeekStr}`;
+            const tasks = lsGet(key, []);
+            const exists = tasks.some(t => t.title === title);
+            if (exists) return;
+            tasks.push({
+                id: Date.now().toString(),
+                title,
+                frequency: Math.max(1, parseInt(frequency, 10) || 1),
+                completed: 0,
+                subtasks: [],
+                subtaskScoring: 'grouped'
+            });
+            lsSet(key, tasks);
+            calculateWeeklySuccess();
+            loadWeeklyTasks();
+            const i = $("#add-haftalik-input"); const c = $("#add-haftalik-count");
+            if (i) { i.value=''; i.classList.add('hidden'); }
+            if (c) { c.value='1'; c.classList.add('hidden'); }
         }
 
         // --- CRUD İŞLEMLERİ ---
@@ -1450,8 +1900,8 @@
                             title: task.title,
                             frequency: task.frequency || 1,
                             completed: 0,
-                            subtasks: [],
-                            subtaskScoring: 'grouped'
+                            subtasks: task.subtasks || [],
+                            subtaskScoring: task.subtaskScoring || 'grouped'
                         });
                         lsSet(key, tasks);
                         loadWeeklyTasks();
@@ -1470,10 +1920,10 @@
                             title: task.title,
                             type: poolType,
                             status: 0,
-                            repetitionCount: 1,
+                            repetitionCount: task.repetitionCount || 1,
                             repetitionCompleted: 0,
-                            subtasks: [],
-                            subtaskScoring: 'grouped'
+                            subtasks: task.subtasks || [],
+                            subtaskScoring: task.subtaskScoring || 'grouped'
                         });
                         // Persist and update history/stats for this date
                         persistDailyState(activeDateStr, tasks);
@@ -1605,7 +2055,8 @@
                 showMessage("Hata", "Görev adı boş olamaz.");
                 return;
             }
-
+            // Havuz senkronizasyonu için eski başlığı sakla
+            const oldTitle = editingTaskData.title;
             editingTaskData.title = newTitle;
             
             // Tekrar sayısını güncelle (sadece günlük görevler için)
@@ -1633,6 +2084,9 @@
                     tasks[taskIndex] = editingTaskData;
                     persistDailyState(editingTaskData.dateStr, tasks);
                     loadDailyTasks();
+                    // Günlük görevler için havuza senkronize et
+                    const poolType = editingTaskData.type === 'ilmi' ? 'ilmi' : 'dunyevi';
+                    syncTaskToPool(editingTaskData, poolType, oldTitle);
                 }
             } else if (editingTaskType === 'weekly') {
                 const key = `tasks_weekly_${editingTaskData.weekStr}`;
@@ -1643,6 +2097,8 @@
                     lsSet(key, tasks);
                     calculateWeeklySuccess();
                     loadWeeklyTasks();
+                    // Haftalık görevler için havuza senkronize et
+                    syncTaskToPool(editingTaskData, 'haftalik', oldTitle);
                 }
             }
 
@@ -1814,7 +2270,14 @@
             
             const total = tasks.length;
             if (total === 0) {
-                $("#success-rate").textContent = "0%";
+                const rateEl = $("#success-rate");
+                const waterEl = $("#daily-pool-water");
+                const cL = $("#daily-carrier-left");
+                const cR = $("#daily-carrier-right");
+                if (rateEl) rateEl.textContent = "0%";
+                if (waterEl) waterEl.style.height = "0%";
+                if (cL) cL.style.animationDuration = '4s';
+                if (cR) cR.style.animationDuration = '4s';
                 return { total: 0, completed: 0 };
             }
             
@@ -1826,7 +2289,9 @@
             }, 0);
             
             const successRate = Math.round((completed / total) * 100);
-            $("#success-rate").textContent = `${successRate}%`;
+            // Artık toplam günlük başarı yerine, tür bazlı iki ayrı animasyon kullanıyoruz.
+            updateDailyTypeSuccess('dunyevi');
+            updateDailyTypeSuccess('ilmi');
             
             return { total, completed };
         }
@@ -1916,7 +2381,16 @@
             }
 
             if (tasks.length === 0) {
-                if(updateUI) $("#weekly-success-rate").textContent = "0%";
+                if(updateUI) {
+                    const rateEl = $("#weekly-success-rate");
+                    const waterEl = $("#weekly-pool-water");
+                    const cL = $("#weekly-carrier-left");
+                    const cR = $("#weekly-carrier-right");
+                    if (rateEl) rateEl.textContent = "0%";
+                    if (waterEl) waterEl.style.height = "0%";
+                    if (cL) cL.style.animationDuration = '4s';
+                    if (cR) cR.style.animationDuration = '4s';
+                }
                 return 0; // Başarı oranı
             }
 
@@ -1952,10 +2426,304 @@
             
             const successRate = Math.round((totalScore / totalMaxScore) * 100);
             if (updateUI) {
-                $("#weekly-success-rate").textContent = `${successRate}%`;
+                const rateEl = $("#weekly-success-rate");
+                const waterEl = $("#weekly-pool-water");
+                const cL = $("#weekly-carrier-left");
+                const cR = $("#weekly-carrier-right");
+                if (rateEl) rateEl.textContent = `${successRate}%`;
+                if (waterEl) waterEl.style.height = `${successRate}%`;
+                const dur = 4 - (successRate / 100) * 2;
+                // Vary droplet size/arc/time based on delta
+                window.__lastRates = window.__lastRates || { dunyevi: 0, ilmi: 0, weekly: 0 };
+                const prevWeekly = window.__lastRates.weekly || 0;
+                const delta = Math.abs(successRate - prevWeekly);
+                const bucketL = cL ? cL.querySelector('.bucket') : null;
+                const bucketR = cR ? cR.querySelector('.bucket') : null;
+                const dropSize = `${Math.min(10, 6 + Math.floor(delta / 15))}px`;
+                const dropTime = `${Math.max(500, 700 + delta * 10)}ms`;
+                const arcX = `${Math.min(30, 22 + Math.floor(delta / 10))}px`;
+                const arcY = `${-Math.min(28, 22 + Math.floor(delta / 10))}px`;
+                if (bucketL) { bucketL.style.setProperty('--drop-size', dropSize); bucketL.style.setProperty('--drop-time', dropTime); bucketL.style.setProperty('--arc-x', arcX); bucketL.style.setProperty('--arc-y', arcY); }
+                if (bucketR) { bucketR.style.setProperty('--drop-size', dropSize); bucketR.style.setProperty('--drop-time', dropTime); bucketR.style.setProperty('--arc-x', arcX); bucketR.style.setProperty('--arc-y', arcY); }
+                // Stagger pours: left then right
+                if (cL) { cL.style.animationDuration = `${dur}s`; setTimeout(() => cL.classList.add('pour'), 0); setTimeout(() => { cL.classList.remove('pour'); }, 900); }
+                if (cR) { cR.style.animationDuration = `${dur}s`; setTimeout(() => cR.classList.add('pour'), 220); setTimeout(() => { cR.classList.remove('pour'); }, 1120); }
+                const poolEl = waterEl ? waterEl.parentElement : null;
+                if (poolEl) { poolEl.classList.add('ripple'); setTimeout(() => poolEl.classList.remove('ripple'), 650); }
+                // Haftalık için timed burst
+                triggerSplashBurst('weekly', 25, prevWeekly, successRate);
+                triggerSplashBurst('weekly', 50, prevWeekly, successRate);
+                triggerSplashBurst('weekly', 75, prevWeekly, successRate);
+                window.__lastRates.weekly = successRate;
             }
-            
             return successRate;
+        }
+
+        // Celebration messages (30-day cycle)
+        // Themed messages (Quran verses and Sahaba examples) with citations
+        const celebrationMessages = [
+            { text: "İnsan için ancak çalıştığı vardır.", source: "Kur’an, Necm 53:39" },
+            { text: "Zorlukla beraber kolaylık vardır.", source: "Kur’an, İnşirah 94:6" },
+            { text: "Sabredenlerle beraber olun.", source: "Kur’an, Tevbe 9:119" },
+            { text: "Hayırda yarışın.", source: "Kur’an, Bakara 2:148" },
+            { text: "Şükrederseniz, elbette arttırırım.", source: "Kur’an, İbrahim 14:7" },
+            { text: "Güzel söz ve amel yükselir.", source: "Kur’an, Fatır 35:10 (mefhumu)" },
+            { text: "Az da olsa devamlı olan makbuldür.", source: "Hadis, Buhari (ed-Da’vâm) mefhumu" },
+            { text: "Ameller niyetlere göredir.", source: "Hadis, Buhari 1" },
+            { text: "İlim amel ile kemâl bulur.", source: "Sahabe Hikmetlerinden" },
+            { text: "İhlas, azim ve sabır: üç tac.", source: "Sahabe Hikmetlerinden" },
+            { text: "Denge: dünyevi ve ilmi gayret.", source: "Sahabe Hikmetlerinden" },
+            { text: "Azim, yolun yarısıdır.", source: "Sahabe Hikmetlerinden" },
+            { text: "Gayret eden yolunu bulur.", source: "Sahabe Hikmetlerinden" },
+            { text: "İstikamet istikrardan doğar.", source: "Sahabe Hikmetlerinden" },
+            { text: "Taş üstüne taş: bina sebatla yükselir.", source: "Sahabe Örneği (Metafor)" },
+            { text: "Sabırla zafer gelir.", source: "Sahabe Hikmetlerinden" },
+            { text: "Niyet temizse yol kolaylaşır.", source: "Sahabe Hikmetlerinden" },
+            { text: "Bugün gayretinle kapılar açıldı.", source: "Sahabe Hikmetlerinden" },
+            { text: "İyiyi çoğalt, kötülükten sakın.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Çaba duadır; neticesi rahmettir.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Seni gayret taşır.", source: "Sahabe Hikmetlerinden" },
+            { text: "Niyet güzel, netice güzel.", source: "Sahabe Hikmetlerinden" },
+            { text: "Gayretini sev; yolun kıymetini bil.", source: "Sahabe Hikmetlerinden" },
+            { text: "Bugün tamamladın; yarın yeniden başla.", source: "Sahabe Hikmetlerinden" },
+            { text: "Kalbe huzur veren emek.", source: "Sahabe Hikmetlerinden" },
+            { text: "İyilikte sebat et.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Her gün bir tuğla.", source: "Sahabe Örneği (Metafor)" },
+            { text: "İlimle amel, amelle ihlas.", source: "Sahabe Hikmetlerinden" },
+            { text: "Çabalayana kolaylık gelir.", source: "Kur’an, İnşirah 94 (mefhumu)" },
+            { text: "Güzel niyetler güzel sonuçlar doğurur.", source: "Sahabe Hikmetlerinden" },
+            { text: "İstikrar başarının anahtarıdır.", source: "Sahabe Hikmetlerinden" },
+            { text: "Azim ve emek iz bırakır.", source: "Sahabe Hikmetlerinden" },
+            { text: "Hayır işte yarışın: bugün öndesin.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Küçük adımlar büyük kapılar açar.", source: "Sahabe Hikmetlerinden" },
+            { text: "İlhamını canlı tut; istikrar seni taşır.", source: "Sahabe Hikmetlerinden" },
+            { text: "Bugün iraden güçlendi.", source: "Sahabe Hikmetlerinden" },
+            { text: "Gayretin bereketi huzur verir.", source: "Sahabe Hikmetlerinden" },
+            { text: "Hayırlı iş istikrarla büyür.", source: "Sahabe Hikmetlerinden" },
+            { text: "İlim ve amel dengesi.", source: "Sahabe Hikmetlerinden" },
+            { text: "Şükürle taçlandır.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Azimli kal; yola devam.", source: "Sahabe Hikmetlerinden" },
+            { text: "İyilikte istikrar: bugün parlıyor.", source: "Sahabe Hikmetlerinden" },
+            { text: "Hedefe giden yolda sebat.", source: "Sahabe Hikmetlerinden" },
+            { text: "Çaban kabul oldu.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Niyet ve amel bereket getirir.", source: "Sahabe Hikmetlerinden" },
+            { text: "Bugün bir adım daha attın.", source: "Sahabe Hikmetlerinden" },
+            { text: "İyiye adım, kötülükten uzak.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "İstikametini koru.", source: "Sahabe Hikmetlerinden" },
+            { text: "Güzel söz, güzel amel.", source: "Kur’an ilkelerine uygun öğüt" },
+            { text: "Gayret, kalbi diri tutar.", source: "Sahabe Hikmetlerinden" },
+            { text: "Taşıdığın emek, havuza döküldü: bereket.", source: "Sahabe Örneği (Metafor)" },
+            { text: "Günün gayreti, yarının umudu.", source: "Sahabe Hikmetlerinden" },
+            { text: "Emek: görünmeyen kahramanlık.", source: "Sahabe Hikmetlerinden" },
+            { text: "Şükür ve istikrar, yol arkadaşın olsun.", source: "Sahabe Hikmetlerinden" },
+            { text: "Gayret, yolun rehberidir.", source: "Sahabe Hikmetlerinden" },
+            { text: "Sabır ve sebatla ilerle.", source: "Sahabe Hikmetlerinden" },
+            { text: "Bugün bina yükseldi.", source: "Sahabe Örneği (Metafor)" },
+            { text: "İlimle güzelleşen amel.", source: "Sahabe Hikmetlerinden" }
+        ];
+
+        function showDailyCelebration() {
+            const d = new Date(activeDateStr);
+            const dayIndex = d.getDate() - 1;
+            const monthOffset = d.getMonth() % 2; // vary a bit each month
+            const idx = (dayIndex + monthOffset) % celebrationMessages.length;
+            const textEl = document.getElementById('celebrate-text');
+            const sourceEl = document.getElementById('celebrate-source');
+            const auraEl = document.getElementById('celebrate-aura');
+            const backdrop = document.getElementById('celebrate-backdrop');
+            const msg = celebrationMessages[idx];
+            if (textEl) textEl.textContent = msg.text;
+            if (sourceEl) sourceEl.textContent = msg.source;
+            if (auraEl) {
+                auraEl.innerHTML = '';
+                for (let i=0;i<16;i++) {
+                    const dot = document.createElement('span');
+                    dot.className = 'dot';
+                    const dx = (Math.random()<0.5?-1:1) * (8 + Math.floor(Math.random()*10));
+                    const dy = (Math.random()<0.5?-1:1) * (6 + Math.floor(Math.random()*8));
+                    dot.style.left = Math.floor(Math.random()*95)+'%';
+                    dot.style.top = Math.floor(Math.random()*95)+'%';
+                    dot.style.setProperty('--dx', dx+'px');
+                    dot.style.setProperty('--dy', dy+'px');
+                    dot.style.animationDelay = (Math.random()*2)+'s';
+                    auraEl.appendChild(dot);
+                }
+            }
+            if (backdrop) backdrop.style.display = 'flex';
+            launchFireworks();
+            burstConfetti();
+        }
+
+        // Close celebration modal
+        (function(){
+            document.addEventListener('click', (e) => {
+                if (e.target && e.target.id === 'celebrate-close') {
+                    const backdrop = document.getElementById('celebrate-backdrop');
+                    if (backdrop) backdrop.style.display = 'none';
+                }
+            });
+        })();
+
+        // Randomized fireworks
+        function launchFireworks() {
+            const fw = document.getElementById('fireworks');
+            if (!fw) return;
+            fw.innerHTML = '';
+            const colors = ['#ffd166','#a6c1ee','#fbc2eb','#10b981','#60a5fa'];
+            for (let i=0;i<24;i++) {
+                const s = document.createElement('span');
+                s.className = 'spark';
+                const left = Math.floor(Math.random()*90)+5; // 5%-95%
+                const top = Math.floor(Math.random()*40)+5;  // header area
+                const fx = (Math.random()<0.5? -1:1) * (100 + Math.floor(Math.random()*80));
+                const fy = - (120 + Math.floor(Math.random()*100));
+                const sz = 3 + Math.floor(Math.random()*4);
+                const dur = (1.2 + Math.random()*0.8)+'s';
+                const col = colors[Math.floor(Math.random()*colors.length)];
+                s.style.left = left+'%';
+                s.style.top = top+'%';
+                s.style.setProperty('--fx', fx+'px');
+                s.style.setProperty('--fy', fy+'px');
+                s.style.setProperty('--sz', sz+'px');
+                s.style.setProperty('--dur', dur);
+                s.style.setProperty('--col', col);
+                fw.appendChild(s);
+            }
+        }
+
+        // Lightweight confetti burst
+        function burstConfetti() {
+            const canvas = document.getElementById('confetti');
+            if (!canvas) return;
+            const modal = canvas.closest('.celebrate-modal');
+            const rect = modal.getBoundingClientRect();
+            canvas.width = rect.width; canvas.height = rect.height;
+            const ctx = canvas.getContext('2d');
+            const pieces = [];
+            const cols = ['#f87171','#34d399','#60a5fa','#fbbf24','#a78bfa','#ec4899'];
+            for (let i=0;i<120;i++) {
+                pieces.push({
+                    x: canvas.width/2 + (Math.random()*40-20),
+                    y: canvas.height/3,
+                    r: 2 + Math.random()*3,
+                    c: cols[Math.floor(Math.random()*cols.length)],
+                    vx: (Math.random()*2-1)*3,
+                    vy: -(2 + Math.random()*3),
+                    g: 0.06 + Math.random()*0.04,
+                    a: 1
+                });
+            }
+            let t = 0;
+            function step() {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+                pieces.forEach(p => {
+                    p.x += p.vx; p.y += p.vy; p.vy += p.g; p.a -= 0.008;
+                    ctx.globalAlpha = Math.max(0,p.a);
+                    ctx.fillStyle = p.c;
+                    ctx.beginPath();
+                    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+                    ctx.fill();
+                });
+                t++;
+                if (t<220) requestAnimationFrame(step);
+                else { ctx.clearRect(0,0,canvas.width,canvas.height); }
+            }
+            step();
+        }
+
+        // Helper: show splash briefly when crossing thresholds
+        function triggerSplashBurst(prefix, threshold, prev, current) {
+            const el = document.querySelector(`#${prefix}-splash-${threshold}`);
+            if (!el) return;
+            const crossedUp = (prev || 0) < threshold && current >= threshold;
+            if (!crossedUp) return;
+            el.classList.add('show');
+            setTimeout(() => { el.classList.remove('show'); }, 1200);
+        }
+
+        // Compute and update per-type daily success visuals
+        function updateDailyTypeSuccess(type) {
+            let tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
+            if ((!tasks || tasks.length === 0) && lsGet('history', {})[activeDateStr]) {
+                tasks = lsGet('history', {})[activeDateStr];
+            }
+            const filtered = (tasks || []).filter(t => t.type === type);
+            const { success: successRate } = computeSuccessFromTasks(filtered);
+            const prefix = type === 'dunyevi' ? 'daily-dunyevi' : 'daily-ilmi';
+            const rateEl = document.querySelector(`#${prefix}-success-rate`);
+            const waterEl = document.querySelector(`#${prefix}-pool-water`);
+            const cL = document.querySelector(`#${prefix}-carrier-left`);
+            const cR = document.querySelector(`#${prefix}-carrier-right`);
+            if (rateEl) rateEl.textContent = `${successRate}%`;
+            if (waterEl) waterEl.style.height = `${successRate}%`;
+            const dur = 4 - (successRate / 100) * 2;
+            // Compute delta and set bucket CSS variables
+            window.__lastRates = window.__lastRates || { dunyevi: 0, ilmi: 0, weekly: 0 };
+            const prev = window.__lastRates[type] || 0;
+            const delta = Math.abs(successRate - prev);
+            const bucketL = cL ? cL.querySelector('.bucket') : null;
+            const bucketR = cR ? cR.querySelector('.bucket') : null;
+            const dropSize = `${Math.min(10, 6 + Math.floor(delta / 15))}px`;
+            const dropTime = `${Math.max(500, 700 + delta * 10)}ms`;
+            const arcX = `${Math.min(30, 22 + Math.floor(delta / 10))}px`;
+            const arcY = `${-Math.min(28, 22 + Math.floor(delta / 10))}px`;
+            if (bucketL) { bucketL.style.setProperty('--drop-size', dropSize); bucketL.style.setProperty('--drop-time', dropTime); bucketL.style.setProperty('--arc-x', arcX); bucketL.style.setProperty('--arc-y', arcY); }
+            if (bucketR) { bucketR.style.setProperty('--drop-size', dropSize); bucketR.style.setProperty('--drop-time', dropTime); bucketR.style.setProperty('--arc-x', arcX); bucketR.style.setProperty('--arc-y', arcY); }
+            // Stagger pours: left then right
+            if (cL) { cL.style.animationDuration = `${dur}s`; setTimeout(() => cL.classList.add('pour'), 0); setTimeout(() => { cL.classList.remove('pour'); }, 900); }
+            if (cR) { cR.style.animationDuration = `${dur}s`; setTimeout(() => cR.classList.add('pour'), 220); setTimeout(() => { cR.classList.remove('pour'); }, 1120); }
+            const poolEl = waterEl ? waterEl.parentElement : null;
+            if (poolEl) { poolEl.classList.add('ripple'); setTimeout(() => poolEl.classList.remove('ripple'), 650); }
+            triggerSplashBurst(prefix, 25, prev, successRate);
+            triggerSplashBurst(prefix, 50, prev, successRate);
+            triggerSplashBurst(prefix, 75, prev, successRate);
+            window.__lastRates[type] = successRate;
+
+            // If both daily types reached 100%, trigger celebration (once per day)
+            try {
+                const rates = window.__lastRates || { dunyevi: 0, ilmi: 0 };
+                const allDone = (rates.dunyevi === 100 && rates.ilmi === 100);
+                const shownKey = `celebration_shown_${activeDateStr}`;
+                if (allDone && !lsGet(shownKey, false)) {
+                    showDailyCelebration();
+                    lsSet(shownKey, true);
+                }
+            } catch (e) { /* no-op */ }
+        }
+
+        /**
+         * Havuzdaki ilgili girdiyi düzenlenen görevle senkronize eder.
+         * Eşleştirme önceliği: önce eski başlıkla, bulunamazsa mevcut başlıkla.
+         * Günlük için: title, subtasks, subtaskScoring, repetitionCount (varsayılan) senkronize edilir.
+         * Haftalık için: title, subtasks, subtaskScoring (frequency dokunulmaz).
+         */
+        function syncTaskToPool(task, poolType, oldTitle = null) {
+            try {
+                const key = `pools_${poolType}`;
+                const pool = lsGet(key, []);
+                if (!Array.isArray(pool)) return;
+
+                // İlgili havuz girdisini bul
+                let idx = -1;
+                if (oldTitle) idx = pool.findIndex(p => p.title === oldTitle);
+                if (idx === -1) idx = pool.findIndex(p => p.title === task.title);
+                if (idx === -1) return; // Havuzda yoksa sessizce çık
+
+                // Ortak alanlar
+                pool[idx].title = task.title;
+                pool[idx].subtasks = task.subtasks || [];
+                pool[idx].subtaskScoring = task.subtaskScoring || 'grouped';
+
+                // Günlük özel: tekrar sayısı
+                if (poolType === 'dunyevi' || poolType === 'ilmi') {
+                    pool[idx].repetitionCount = task.repetitionCount || 1;
+                }
+
+                lsSet(key, pool);
+                loadPools();
+            } catch (e) {
+                console.error('Havuz senkronizasyon hatası:', e);
+            }
         }
         
         /**
@@ -1980,7 +2748,7 @@
                 
                 const dateEl = document.createElement('div');
                 dateEl.className = 'p-4 bg-gray-50 rounded-lg shadow-sm';
-                const editable = daysDifferenceFromToday(date) <= EDITABLE_DAYS;
+                const editable = daysDifferenceFromToday(date) >= 0; // Geçmiş/bugün düzenlenebilir
                 dateEl.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
