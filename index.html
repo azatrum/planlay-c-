@@ -182,18 +182,29 @@
         .carrier { position: absolute; bottom: 0; font-size: 1.6rem; animation: 4s ease-in-out infinite; display: inline-flex; align-items: center; gap: 6px; }
         .carrier-left { left: 0; animation-name: walk-left; }
         .carrier-right { right: 0; animation-name: walk-right; }
+        /* Sağdaki karakterin kovası havuza doğru atsın (sola) */
+        .carrier-right .bucket::after { --arc-x: -22px; }
         @keyframes walk-left { 0%{transform:translateX(0)} 50%{transform:translateX(40%)} 100%{transform:translateX(0)} }
         @keyframes walk-right { 0%{transform:translateX(0)} 50%{transform:translateX(-40%)} 100%{transform:translateX(0)} }
 
         /* Bucket + pour arc */
-        .bucket { width: 16px; height: 16px; border: 2px solid #4fd1c5; border-top-color: transparent; border-radius: 3px; position: relative; display: inline-block; }
+        .bucket { width: 16px; height: 16px; border: 2px solid #4fd1c5; border-top-color: transparent; border-radius: 3px; position: relative; display: inline-block; overflow: visible; }
+        /* Kovadaki su dolgusu (atmadan önce görünür, atarken boşalır) */
+        .bucket::before { content: ""; position: absolute; left: 1px; right: 1px; bottom: 1px; height: var(--bucket-fill, 70%); background: linear-gradient(180deg, rgba(79,209,197,0.9), rgba(79,209,197,0.7)); border-radius: 2px; transition: height 350ms ease, opacity 200ms ease; }
+        .carrier.pour .bucket::before { height: 8%; opacity: 0.6; }
         .bucket::after { content: ""; position: absolute; right: -4px; top: 2px; width: var(--drop-size,6px); height: var(--drop-size,6px); border-radius: 50%; background: #4fd1c5; opacity: 0; transform: translate(0,0); }
         .carrier.pour .bucket { transform: rotate(-12deg); transition: transform 200ms ease; }
         .carrier.pour .bucket::after { opacity: 1; animation: drop-arc var(--drop-time,700ms) ease-in forwards; }
-        @keyframes drop-arc { 0% { transform: translate(0,0); opacity: 1; } 60% { transform: translate(var(--arc-x,22px),var(--arc-y,-22px)); opacity: 1; } 100% { transform: translate(calc(var(--arc-x,22px)*2),0); opacity: 0; } }
-        .pool::before { content: ""; position: absolute; left: 50%; bottom: 6px; width: 0; height: 0; border-radius: 50%; background: rgba(79,209,197,0.35); transform: translateX(-50%); opacity: 0; }
-        .pool.ripple::before { animation: ripple 600ms ease-out; }
-        @keyframes ripple { 0% { width: 0; height: 0; opacity: 0.7; } 100% { width: 140px; height: 44px; opacity: 0; } }
+        /* Damla, havuza her zaman ulaşsın; yön değişkeni ile güdümlü */
+        @keyframes drop-arc { 0% { transform: translate(0,0); opacity: 1; } 60% { transform: translate(var(--arc-x,22px),var(--arc-y,-22px)); opacity: 1; } 100% { transform: translate(calc(var(--arc-x,22px)*2.6),0); opacity: 0; } }
+        .pool::before { content: ""; position: absolute; left: 50%; bottom: 6px; width: 0; height: 0; border-radius: 50%; background: radial-gradient(circle, rgba(79,209,197,0.45), rgba(79,209,197,0.2)); transform: translateX(-50%); opacity: 0; }
+        .pool.ripple::before { animation: ripple 900ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes ripple { 0% { width: 0; height: 0; opacity: 0.85; transform: translateX(-50%) scale(0.9); } 50% { opacity: 0.6; } 100% { width: 160px; height: 56px; opacity: 0; transform: translateX(-50%) scale(1.02); } }
+        /* Güdümlü su damlası (kovadan havuza doğru) */
+        .guided-stream { position: absolute; width: 6px; height: 6px; border-radius: 50%; opacity: 0; pointer-events: none; }
+        .guided-stream.daily { background: #10b981; }
+        .guided-stream.weekly { background: #3b82f6; }
+        .guided-stream.ilmi { background: #6366f1; }
 
         /* Damla animasyonu (havuz üzerine düşen su) */
         .droplet-container { position: absolute; top: 0; left: 50%; width: 120px; height: 90px; transform: translateX(-50%); pointer-events: none; }
@@ -443,12 +454,20 @@
             </div>
             <!-- Haftalık -->
             <div class="glass-bg task-box rounded-xl shadow-lg p-4 border-green-300">
-                <div class="flex items-center justify-between mb-3 bg-gradient-to-r from-green-100 to-green-50 rounded-lg px-3 py-2">
+                <div class="flex items-center justify-between mb-2 bg-gradient-to-r from-green-100 to-green-50 rounded-lg px-2 py-1">
                     <div class="flex items-center gap-2">
-                        <span class="text-2xl">🗓️</span>
-                        <h2 class="text-2xl font-bold text-green-700">Haftalık Görevler</h2>
+                        <span class="text-xl">🗓️</span>
+                        <h2 class="text-xl font-bold text-green-700">Haftalık</h2>
                     </div>
-                    <span class="text-xs font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm">Haftalık</span>
+                    <div class="flex items-center gap-1">
+                        <button id="weekly-prev-btn" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Önceki">←</button>
+                        <span id="weekly-current-label" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm">W00</span>
+                        <button id="weekly-next-btn" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Sonraki">→</button>
+                        <button id="weekly-jump-current" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Bu hafta">●</button>
+                        <select id="weekly-select" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Hafta">
+                            <option value="">Seç</option>
+                        </select>
+                    </div>
                 </div>
                 <!-- Haftalık Başarı Havuzu (sütunla hizalı) -->
                 <div class="progress-scene mb-3">
@@ -615,8 +634,17 @@
                 <button class="pool-tab-btn py-2 px-4 font-semibold text-gray-500" data-pool-tab="modal-ilmi-pool">İlmi</button>
                 <button class="pool-tab-btn py-2 px-4 font-semibold text-gray-500" data-pool-tab="modal-haftalik-pool">Haftalık</button>
             </div>
+            <div class="flex items-center justify-end mb-2">
+                <button id="add-all-dunyevi-favorites" class="text-xs bg-blue-600 text-white px-2 py-1 rounded">Favorileri Ekle</button>
+            </div>
             <div id="modal-dunyevi-pool" class="pool-tab-content space-y-2 max-h-[60vh] overflow-y-auto pr-2"></div>
+            <div class="flex items-center justify-end mb-2">
+                <button id="add-all-ilmi-favorites" class="text-xs bg-purple-600 text-white px-2 py-1 rounded">Favorileri Ekle</button>
+            </div>
             <div id="modal-ilmi-pool" class="pool-tab-content hidden space-y-2 max-h-[60vh] overflow-y-auto pr-2"></div>
+            <div class="flex items-center justify-end mb-2">
+                <button id="add-all-haftalik-favorites" class="text-xs bg-green-600 text-white px-2 py-1 rounded">Favorileri Ekle</button>
+            </div>
             <div id="modal-haftalik-pool" class="pool-tab-content hidden space-y-2 max-h-[60vh] overflow-y-auto pr-2"></div>
         </div>
     </div>
@@ -840,6 +868,7 @@
          */
         function loadAllDataAndSetupListeners() {
             loadDailyTasks();
+            ensureWeeklyRollOver();
             loadWeeklyTasks();
             loadPools();
             loadStats(); // GÜNCELLENDİ: Artık grafikleri de çizecek
@@ -847,7 +876,61 @@
 
             // Event Listeners (UI)
             setupEventListeners();
+            setupWeeklyNavigation();
 
+
+        function setupWeeklyNavigation() {
+            const prevBtn = document.getElementById('weekly-prev-btn');
+            const nextBtn = document.getElementById('weekly-next-btn');
+            const label = document.getElementById('weekly-current-label');
+            const jumpBtn = document.getElementById('weekly-jump-current');
+            const selectEl = document.getElementById('weekly-select');
+            const dateFromWeekId = (weekId) => {
+                const [yearStr, weekStr] = weekId.split('-W');
+                const year = parseInt(yearStr, 10);
+                const week = parseInt(weekStr, 10);
+                const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+                const dow = simple.getUTCDay();
+                const ISOweekStart = new Date(simple);
+                if (dow <= 4 && dow > 0) ISOweekStart.setUTCDate(simple.getUTCDate() - simple.getUTCDay() + 1);
+                else ISOweekStart.setUTCDate(simple.getUTCDate() + 8 - simple.getUTCDay());
+                return ISOweekStart; // Pazartesi
+            };
+            const addWeeks = (weekId, delta) => {
+                const start = dateFromWeekId(weekId);
+                start.setUTCDate(start.getUTCDate() + delta * 7);
+                return getWeekId(new Date(start));
+            };
+            const updateLabel = () => {
+                try {
+                    label.textContent = currentWeekStr; // Compact: show only week id
+                } catch { label.textContent = currentWeekStr; }
+            };
+            const populateWeeks = () => {
+                if (!selectEl) return;
+                // Collect week keys from localStorage
+                const weeks = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    const m = key && key.match(/^tasks_weekly_(\d{4}-W\d{2})$/);
+                    if (m) weeks.push(m[1]);
+                }
+                // Ensure current week is listed
+                if (!weeks.includes(currentWeekStr)) weeks.push(currentWeekStr);
+                weeks.sort();
+                selectEl.innerHTML = '<option value="">Hafta Seç</option>' + weeks.map(w => `<option value="${w}">${w}</option>`).join('');
+                selectEl.value = "";
+            };
+            updateLabel();
+            populateWeeks();
+            if (prevBtn) prevBtn.onclick = () => { currentWeekStr = addWeeks(currentWeekStr, -1); updateLabel(); loadWeeklyTasks(); };
+            if (nextBtn) nextBtn.onclick = () => { currentWeekStr = addWeeks(currentWeekStr, 1); updateLabel(); loadWeeklyTasks(); };
+            if (jumpBtn) jumpBtn.onclick = () => { currentWeekStr = getWeekId(new Date()); updateLabel(); loadWeeklyTasks(); };
+            if (selectEl) selectEl.onchange = (e) => {
+                const val = e.target.value;
+                if (val) { currentWeekStr = val; updateLabel(); loadWeeklyTasks(); }
+            };
+        }
             // Nöbet ve Günün Sözü kartlarını alt ikili bölüme taşı
             try {
                 const duo = document.getElementById('bottom-duo');
@@ -944,8 +1027,24 @@
             const dunyeviPool = lsGet('pools_dunyevi', []);
             const ilmiPool = lsGet('pools_ilmi', []);
             
-            const defaultDunyevi = dunyeviPool.filter(t => t.isDefault).map(t => ({...t, type: 'dunyevi', status: 0}));
-            const defaultIlmi = ilmiPool.filter(t => t.isDefault).map(t => ({...t, type: 'ilmi', status: 0}));
+            const defaultDunyevi = dunyeviPool.filter(t => t.isDefault).map(t => ({
+                title: t.title,
+                type: 'dunyevi',
+                status: 0,
+                repetitionCount: t.repetitionCount || 1,
+                repetitionCompleted: 0,
+                subtasks: Array.isArray(t.subtasks) ? t.subtasks.map(st => ({ title: st.title, completed: false })) : [],
+                subtaskScoring: t.subtaskScoring || 'grouped'
+            }));
+            const defaultIlmi = ilmiPool.filter(t => t.isDefault).map(t => ({
+                title: t.title,
+                type: 'ilmi',
+                status: 0,
+                repetitionCount: t.repetitionCount || 1,
+                repetitionCompleted: 0,
+                subtasks: Array.isArray(t.subtasks) ? t.subtasks.map(st => ({ title: st.title, completed: false })) : [],
+                subtaskScoring: t.subtaskScoring || 'grouped'
+            }));
             
             const dailyKey = `tasks_daily_${currentDayStr}`;
             const dailyTasks = lsGet(dailyKey, []);
@@ -958,7 +1057,11 @@
                         id: Date.now().toString() + Math.random(), // Benzersiz ID
                         title: defaultTask.title,
                         type: defaultTask.type,
-                        status: 0
+                        status: 0,
+                        repetitionCount: defaultTask.repetitionCount,
+                        repetitionCompleted: 0,
+                        subtasks: defaultTask.subtasks,
+                        subtaskScoring: defaultTask.subtaskScoring
                     });
                 }
             });
@@ -1000,7 +1103,9 @@
                     id: Date.now().toString() + Math.random(),
                     title: t.title,
                     frequency: t.frequency || 1,
-                    completed: 0
+                    completed: 0,
+                    subtasks: Array.isArray(t.subtasks) ? t.subtasks.map(st => ({ title: st.title, completed: false })) : [],
+                    subtaskScoring: t.subtaskScoring || 'grouped'
                 }));
             
             lsSet(weeklyKey, defaultWeekly);
@@ -1706,6 +1811,83 @@
             const poolModal = document.getElementById("pool-modal");
             if (poolModal) poolModal.onclick = (e) => { if (e.target.id === "pool-modal") poolModal.classList.add('hidden'); };
 
+            // Favorileri toplu ekleme butonları
+            const addAllDun = document.getElementById('add-all-dunyevi-favorites');
+            const addAllIlm = document.getElementById('add-all-ilmi-favorites');
+            const addAllHaf = document.getElementById('add-all-haftalik-favorites');
+            if (addAllDun) addAllDun.onclick = () => addAllFavoritesFromPool('dunyevi');
+            if (addAllIlm) addAllIlm.onclick = () => addAllFavoritesFromPool('ilmi');
+            if (addAllHaf) addAllHaf.onclick = () => addAllFavoritesFromPool('haftalik');
+
+
+        // Tüm favorileri aktif güne/haftaya ekler; zaten ekli olanlar için bilgi verir
+        function addAllFavoritesFromPool(poolType) {
+            try {
+                const poolKey = `pools_${poolType}`;
+                const pool = lsGet(poolKey, []);
+                const favorites = pool.filter(t => t.isDefault);
+                if (favorites.length === 0) {
+                    showMessage('Bilgi', 'Favori (varsayılan) işaretli görev bulunamadı.');
+                    return;
+                }
+
+                if (poolType === 'haftalik') {
+                    const key = `tasks_weekly_${currentWeekStr}`;
+                    const tasks = lsGet(key, []);
+                    let added = 0, already = [];
+                    favorites.forEach(ft => {
+                        const exists = tasks.some(t => t.title === ft.title);
+                        if (exists) { already.push(ft.title); return; }
+                        tasks.push({
+                            id: Date.now().toString() + Math.random(),
+                            title: ft.title,
+                            frequency: ft.frequency || 1,
+                            completed: 0,
+                            subtasks: Array.isArray(ft.subtasks) ? ft.subtasks.map(st => ({ title: st.title, completed: false })) : [],
+                            subtaskScoring: ft.subtaskScoring || 'grouped'
+                        });
+                        added++;
+                    });
+                    lsSet(key, tasks);
+                    loadWeeklyTasks();
+                    const msg = added > 0 ? `${added} favori haftalık görev eklendi.` : 'Tüm favoriler zaten ekli.';
+                    if (already.length) showMessage('Durum', `${msg}\nZaten ekli: ${already.join(', ')}`);
+                    else showMessage('Durum', msg);
+                } else {
+                    if (!isActiveDateEditable()) {
+                        showMessage('Salt Okunur', 'Gelecek gün için ekleme yapılamaz. Bugün veya geçmiş gün seçin.');
+                        return;
+                    }
+                    const key = `tasks_daily_${activeDateStr}`;
+                    const tasks = lsGet(key, []);
+                    let added = 0, already = [];
+                    favorites.forEach(ft => {
+                        const exists = tasks.some(t => t.title === ft.title);
+                        if (exists) { already.push(ft.title); return; }
+                        tasks.push({
+                            id: Date.now().toString() + Math.random(),
+                            title: ft.title,
+                            type: poolType,
+                            status: 0,
+                            repetitionCount: ft.repetitionCount || 1,
+                            repetitionCompleted: 0,
+                            subtasks: Array.isArray(ft.subtasks) ? ft.subtasks.map(st => ({ title: st.title, completed: false })) : [],
+                            subtaskScoring: ft.subtaskScoring || 'grouped'
+                        });
+                        added++;
+                    });
+                    // Persist and update history/stats for this date
+                    persistDailyState(activeDateStr, tasks);
+                    loadDailyTasks();
+                    const msg = added > 0 ? `${added} favori günlük görev eklendi.` : 'Tüm favoriler zaten ekli.';
+                    if (already.length) showMessage('Durum', `${msg}\nZaten ekli: ${already.join(', ')}`);
+                    else showMessage('Durum', msg);
+                }
+            } catch (e) {
+                console.error('Favorileri ekleme hatası:', e);
+                showMessage('Hata', 'Favoriler eklenirken bir sorun oluştu.');
+            }
+        }
             // Tarih gezinme butonları
             const prevBtn = $("#prev-day-btn");
             const nextBtn = $("#next-day-btn");
@@ -1750,6 +1932,25 @@
             });
             persistDailyState(activeDateStr, tasks);
             loadDailyTasks();
+
+            // Havuz senkronizasyonu: günlük görevleri ilgili havuza ekle
+            try {
+                const poolKey = `pools_${type}`;
+                const poolTasks = lsGet(poolKey, []);
+                const inPool = poolTasks.some(p => p.title === title);
+                if (!inPool) {
+                    poolTasks.push({
+                        id: Date.now().toString(),
+                        title: title,
+                        repetitionCount: Math.max(1, parseInt(repetitionCount, 10) || 1),
+                        subtasks: [],
+                        subtaskScoring: 'grouped',
+                        isDefault: false
+                    });
+                    lsSet(poolKey, poolTasks);
+                    loadPools();
+                }
+            } catch (e) { /* no-op */ }
             // Girdileri temizle ve gizle
             if (type === 'dunyevi') {
                 const i = $("#add-dunyevi-input"); const c = $("#add-dunyevi-count");
@@ -1780,6 +1981,25 @@
             lsSet(key, tasks);
             calculateWeeklySuccess();
             loadWeeklyTasks();
+
+            // Havuz senkronizasyonu: haftalık görevleri haftalık havuza ekle
+            try {
+                const poolKey = `pools_haftalik`;
+                const poolTasks = lsGet(poolKey, []);
+                const inPool = poolTasks.some(p => p.title === title);
+                if (!inPool) {
+                    poolTasks.push({
+                        id: Date.now().toString(),
+                        title: title,
+                        frequency: Math.max(1, parseInt(frequency, 10) || 1),
+                        subtasks: [],
+                        subtaskScoring: 'grouped',
+                        isDefault: false
+                    });
+                    lsSet(poolKey, poolTasks);
+                    loadPools();
+                }
+            } catch (e) { /* no-op */ }
             const i = $("#add-haftalik-input"); const c = $("#add-haftalik-count");
             if (i) { i.value=''; i.classList.add('hidden'); }
             if (c) { c.value='1'; c.classList.add('hidden'); }
@@ -2121,6 +2341,8 @@
                 if (task.subtasks && task.subtasks[subtaskIndex]) {
                     task.subtasks[subtaskIndex].completed = !task.subtasks[subtaskIndex].completed;
                     persistDailyState(activeDateStr, tasks);
+                    // Yalnızca ilgili türün animasyonunu tetikle
+                    updateDailyTypeSuccess(task.type);
                     loadDailyTasks();
                 }
             }
@@ -2142,7 +2364,9 @@
                 });
                 task.repetitionCompleted = newCompleted;
                 persistDailyState(activeDateStr, tasks);
-                // UI hemen güncellemek yerine modal tetiklememek için sadece veri güncelleyelim
+                // Sadece ilgili türün animasyonunu tetikle
+                updateDailyTypeSuccess(task.type);
+                // UI ve istatistikleri güncelle
                 calculateSuccess();
                 loadStats();
             }
@@ -2181,6 +2405,9 @@
                 tasks[taskIndex].status = newStatus;
                 // Persist and update history/stats for this date
                 persistDailyState(activeDateStr, tasks);
+                // Yalnızca ilgili türün animasyonunu tetikle
+                const changedType = tasks[taskIndex].type;
+                updateDailyTypeSuccess(changedType);
                 loadDailyTasks(); // UI'ı yenile (içinde başarı hesaplaması var)
             }
         }
@@ -2289,10 +2516,7 @@
             }, 0);
             
             const successRate = Math.round((completed / total) * 100);
-            // Artık toplam günlük başarı yerine, tür bazlı iki ayrı animasyon kullanıyoruz.
-            updateDailyTypeSuccess('dunyevi');
-            updateDailyTypeSuccess('ilmi');
-            
+            // Tür bazlı animasyonlar artık spesifik işlemlerde tetikleniyor.
             return { total, completed };
         }
 
@@ -2445,9 +2669,17 @@
                 const arcY = `${-Math.min(28, 22 + Math.floor(delta / 10))}px`;
                 if (bucketL) { bucketL.style.setProperty('--drop-size', dropSize); bucketL.style.setProperty('--drop-time', dropTime); bucketL.style.setProperty('--arc-x', arcX); bucketL.style.setProperty('--arc-y', arcY); }
                 if (bucketR) { bucketR.style.setProperty('--drop-size', dropSize); bucketR.style.setProperty('--drop-time', dropTime); bucketR.style.setProperty('--arc-x', arcX); bucketR.style.setProperty('--arc-y', arcY); }
-                // Stagger pours: left then right
-                if (cL) { cL.style.animationDuration = `${dur}s`; setTimeout(() => cL.classList.add('pour'), 0); setTimeout(() => { cL.classList.remove('pour'); }, 900); }
-                if (cR) { cR.style.animationDuration = `${dur}s`; setTimeout(() => cR.classList.add('pour'), 220); setTimeout(() => { cR.classList.remove('pour'); }, 1120); }
+                // Stagger pours: left then right, with guided stream
+                if (cL) {
+                    cL.style.animationDuration = `${dur}s`;
+                    setTimeout(() => { cL.classList.add('pour'); launchGuidedStream('weekly', cL, waterEl, 'weekly', successRate); }, 0);
+                    setTimeout(() => { cL.classList.remove('pour'); }, 900);
+                }
+                if (cR) {
+                    cR.style.animationDuration = `${dur}s`;
+                    setTimeout(() => { cR.classList.add('pour'); launchGuidedStream('weekly', cR, waterEl, 'weekly', successRate); }, 220);
+                    setTimeout(() => { cR.classList.remove('pour'); }, 1120);
+                }
                 const poolEl = waterEl ? waterEl.parentElement : null;
                 if (poolEl) { poolEl.classList.add('ripple'); setTimeout(() => poolEl.classList.remove('ripple'), 650); }
                 // Haftalık için timed burst
@@ -2641,6 +2873,69 @@
             setTimeout(() => { el.classList.remove('show'); }, 1200);
         }
 
+        // Launch a guided stream from a carrier's bucket towards the pool
+        function launchGuidedStream(prefix, carrierEl, waterEl, type, successRate) {
+            try {
+                const scene = carrierEl.closest('.progress-scene');
+                const bucketEl = carrierEl.querySelector('.bucket');
+                if (!scene || !bucketEl || !waterEl) return;
+
+                const bucketRect = bucketEl.getBoundingClientRect();
+                const poolRect = waterEl.parentElement.getBoundingClientRect();
+                const sceneRect = scene.getBoundingClientRect();
+
+                const startX = bucketRect.right - sceneRect.left;
+                const startY = bucketRect.top - sceneRect.top + 6;
+                const targetX = poolRect.left - sceneRect.left + poolRect.width / 2;
+                const targetY = poolRect.top - sceneRect.top + 12;
+
+                const prev = (window.__lastRates && window.__lastRates[type]) || 0;
+                const delta = Math.max(0, successRate - prev);
+                const particles = Math.min(6, 2 + Math.floor(delta / 20));
+                const duration = 600 + Math.min(500, delta * 12);
+
+                for (let i = 0; i < particles; i++) {
+                    const dot = document.createElement('span');
+                    dot.className = `guided-stream ${prefix.includes('daily-ilmi') ? 'ilmi' : (prefix.includes('weekly') ? 'weekly' : 'daily')}`;
+                    const jitterX = (Math.random() - 0.5) * 12;
+                    const jitterY = (Math.random() - 0.5) * 8;
+                    dot.style.left = `${startX + jitterX}px`;
+                    dot.style.top = `${startY + jitterY}px`;
+                    dot.style.opacity = '1';
+                    dot.style.transition = `transform ${duration}ms cubic-bezier(0.25,0.65,0.2,1), opacity 300ms ease`;
+                    scene.appendChild(dot);
+
+                    const dx = targetX - (startX + jitterX);
+                    const dy = targetY - (startY + jitterY);
+                    const lift = -Math.max(8, Math.min(20, Math.abs(dx) / 8));
+                    requestAnimationFrame(() => {
+                        dot.style.transform = `translate(${dx}px, ${dy + lift}px)`;
+                    });
+
+                    setTimeout(() => {
+                        dot.style.opacity = '0';
+                        setTimeout(() => { if (dot && dot.parentElement) dot.parentElement.removeChild(dot); }, 280);
+                    }, duration + 40);
+                }
+
+                // On arrival, trigger ripple and contact splash, then clean up
+                setTimeout(() => {
+                    const poolEl = waterEl.parentElement;
+                    if (poolEl) {
+                        poolEl.classList.add('ripple');
+                        // Contact splash
+                        const splash = document.createElement('span');
+                        splash.className = 'contact-splash';
+                        poolEl.appendChild(splash);
+                        setTimeout(() => { if (splash && splash.parentElement) splash.parentElement.removeChild(splash); }, 800);
+                        setTimeout(() => poolEl.classList.remove('ripple'), 700);
+                    }
+                }, 720);
+            } catch (e) {
+                // fail silently
+            }
+        }
+
         // Compute and update per-type daily success visuals
         function updateDailyTypeSuccess(type) {
             let tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
@@ -2670,10 +2965,31 @@
             if (bucketL) { bucketL.style.setProperty('--drop-size', dropSize); bucketL.style.setProperty('--drop-time', dropTime); bucketL.style.setProperty('--arc-x', arcX); bucketL.style.setProperty('--arc-y', arcY); }
             if (bucketR) { bucketR.style.setProperty('--drop-size', dropSize); bucketR.style.setProperty('--drop-time', dropTime); bucketR.style.setProperty('--arc-x', arcX); bucketR.style.setProperty('--arc-y', arcY); }
             // Stagger pours: left then right
-            if (cL) { cL.style.animationDuration = `${dur}s`; setTimeout(() => cL.classList.add('pour'), 0); setTimeout(() => { cL.classList.remove('pour'); }, 900); }
-            if (cR) { cR.style.animationDuration = `${dur}s`; setTimeout(() => cR.classList.add('pour'), 220); setTimeout(() => { cR.classList.remove('pour'); }, 1120); }
+            if (cL) {
+                cL.style.animationDuration = `${dur}s`;
+                setTimeout(() => {
+                    cL.classList.add('pour');
+                    launchGuidedStream(prefix, cL, waterEl, type, successRate);
+                }, 0);
+                setTimeout(() => { cL.classList.remove('pour'); }, 900);
+            }
+            if (cR) {
+                cR.style.animationDuration = `${dur}s`;
+                setTimeout(() => {
+                    cR.classList.add('pour');
+                    launchGuidedStream(prefix, cR, waterEl, type, successRate);
+                }, 220);
+                setTimeout(() => { cR.classList.remove('pour'); }, 1120);
+            }
             const poolEl = waterEl ? waterEl.parentElement : null;
             if (poolEl) { poolEl.classList.add('ripple'); setTimeout(() => poolEl.classList.remove('ripple'), 650); }
+                // Temas anında küçük sıçrama partikülleri oluştur
+                if (poolEl) {
+                    const splash = document.createElement('span');
+                    splash.className = 'contact-splash';
+                    poolEl.appendChild(splash);
+                    setTimeout(() => { if (splash && splash.parentElement) splash.parentElement.removeChild(splash); }, 800);
+                }
             triggerSplashBurst(prefix, 25, prev, successRate);
             triggerSplashBurst(prefix, 50, prev, successRate);
             triggerSplashBurst(prefix, 75, prev, successRate);
@@ -2811,6 +3127,34 @@
             const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
             const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
             return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`; // GÜNCELLENDİ: W Eklendi
+        }
+
+        /**
+         * Haftalık görevleri her Pazartesi (veya yeni ISO hafta başladığında) yeni haftaya devreder.
+         * Yeni haftada tamamlanma sayıları sıfırlanır, alt görevler işaretleri temizlenir.
+         */
+        function ensureWeeklyRollOver() {
+            try {
+                const today = new Date();
+                const currentWeek = getWeekId(today);
+                const lastWeekSaved = lsGet('last_week_id', null);
+                if (lastWeekSaved === currentWeek) return; // Aynı haftaysa işlemez
+
+                // Mevcut haftalık görevleri al (geçen haftadan)
+                const prevKey = `tasks_weekly_${lastWeekSaved || currentWeek}`;
+                const prevTasks = lsGet(prevKey, []);
+                // Yeni hafta için kopya oluştur ve tamamlamaları sıfırla
+                const newTasks = (prevTasks || []).map(t => ({
+                    ...t,
+                    completed: 0,
+                    subtasks: (t.subtasks || []).map(st => ({ ...st, completed: false }))
+                }));
+                const newKey = `tasks_weekly_${currentWeek}`;
+                lsSet(newKey, newTasks);
+                lsSet('last_week_id', currentWeek);
+            } catch (e) {
+                console.warn('Weekly rollover failed:', e);
+            }
         }
         
         /**
