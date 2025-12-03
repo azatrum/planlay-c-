@@ -21,6 +21,20 @@
             transition: background-image 0.5s ease-in-out;
         }
 
+        /* UI ölçek değişkenleri */
+        :root {
+            --task-font-scale: 1;
+            --task-checkbox-scale: 1;
+        }
+        /* Görev öğelerinde ölçek uygulaması */
+        .task-item { font-size: calc(0.95rem * var(--task-font-scale)); }
+        .task-item .text-sm { font-size: calc(0.875rem * var(--task-font-scale)); }
+        .task-item .text-xs { font-size: calc(0.75rem * var(--task-font-scale)); }
+        /* Günlük tekrar ve haftalık tik kutuları */
+        .repetition-checkbox, .weekly-checkbox { transform: scale(var(--task-checkbox-scale)); transform-origin: left center; }
+        /* Havuz ve modal içindeki küçük metinler de ölçeklensin */
+        .pool-item { font-size: calc(0.95rem * var(--task-font-scale)); }
+
         /* Başlık için süslü font */
         .fancy-title {
             font-family: 'Dancing Script', cursive;
@@ -649,6 +663,12 @@
         </div>
     </div>
     
+    <!-- UI Ölçek Butonları (Sağ üst köşe) -->
+    <div id="ui-scale-controls" class="fixed top-2 right-2 z-50 flex items-center gap-1">
+        <button id="ui-scale-dec" class="bg-gray-800/80 text-white text-xs px-2 py-1 rounded shadow">−</button>
+        <button id="ui-scale-inc" class="bg-gray-800/80 text-white text-xs px-2 py-1 rounded shadow">＋</button>
+    </div>
+    
     <!-- Geçmiş Günler Modal (İstek 9) -->
     <div id="history-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full h-[70vh]">
@@ -1196,6 +1216,36 @@
         
         // --- RENDER (GÖRÜNÜM) FONKSİYONLARI ---
 
+        // UI ölçeklendirme: yazı puntoları ve tik boyutları
+        (function setupUiScale() {
+            try {
+                const saved = lsGet('settings_uiScale', { font: 1.0, tick: 1.0 });
+                applyUiScale(saved);
+                const decBtn = document.getElementById('ui-scale-dec');
+                const incBtn = document.getElementById('ui-scale-inc');
+                if (decBtn) decBtn.onclick = () => {
+                    const cur = lsGet('settings_uiScale', { font: 1.0, tick: 1.0 });
+                    const next = { font: Math.max(0.8, +(cur.font - 0.1).toFixed(2)), tick: Math.max(0.8, +(cur.tick - 0.1).toFixed(2)) };
+                    lsSet('settings_uiScale', next);
+                    applyUiScale(next);
+                };
+                if (incBtn) incBtn.onclick = () => {
+                    const cur = lsGet('settings_uiScale', { font: 1.0, tick: 1.0 });
+                    const next = { font: Math.min(1.4, +(cur.font + 0.1).toFixed(2)), tick: Math.min(1.4, +(cur.tick + 0.1).toFixed(2)) };
+                    lsSet('settings_uiScale', next);
+                    applyUiScale(next);
+                };
+            } catch (e) { /* no-op */ }
+        })();
+
+        function applyUiScale(scale) {
+            try {
+                const root = document.documentElement;
+                root.style.setProperty('--task-font-scale', String(scale.font || 1));
+                root.style.setProperty('--task-checkbox-scale', String(scale.tick || 1));
+            } catch (e) { /* no-op */ }
+        }
+
         function renderDailyTasks(dunyevi, ilmi, readOnly = false) {
             const dunyeviContainer = document.querySelector("#dunyevi-tasks-col") || $("#dunyevi-tasks");
             const ilmiContainer = document.querySelector("#ilmi-tasks-col") || $("#ilmi-tasks");
@@ -1363,13 +1413,16 @@
 
         function createTaskElement(task, taskListType, readOnly = false) {
             const el = document.createElement('div');
-            el.className = 'task-item bg-white p-4 rounded-lg shadow-md flex flex-col space-y-2';
+            el.className = 'task-item bg-white rounded-lg shadow-md flex flex-col space-y-2';
+            // Dynamic padding based on UI scale
+            el.style.padding = `calc(0.75rem * var(--task-font-scale))`;
             el.dataset.id = task.id;
 
             if (taskListType === 'daily') {
                 // Ana görev başlığı satırı
                 const headerRow = document.createElement('div');
-                headerRow.className = 'flex items-center space-x-4';
+                headerRow.className = 'flex items-center';
+                headerRow.style.columnGap = 'calc(0.75rem * var(--task-font-scale))';
                 
                 if (readOnly) {
                     headerRow.innerHTML = `
@@ -1393,7 +1446,8 @@
                 // Tekrar sayısı (eğer > 1 ise göster)
                 if (task.repetitionCount && task.repetitionCount > 1) {
                     const repRow = document.createElement('div');
-                    repRow.className = 'ml-8 flex space-x-1 items-center';
+                    repRow.className = 'ml-6 flex items-center';
+                    repRow.style.columnGap = 'calc(0.25rem * var(--task-font-scale))';
                     const checkboxes = [];
                     for (let i = 0; i < task.repetitionCount; i++) {
                         const checkbox = document.createElement('input');
@@ -1414,10 +1468,13 @@
                 // Alt görevler (eğer varsa)
                 if (task.subtasks && task.subtasks.length > 0) {
                     const subtaskRow = document.createElement('div');
-                    subtaskRow.className = 'ml-8 border-l-2 border-pink-200 pl-3 space-y-1';
+                    subtaskRow.className = 'ml-6 border-l-2 border-pink-200';
+                    subtaskRow.style.paddingLeft = 'calc(0.5rem * var(--task-font-scale))';
+                    subtaskRow.style.rowGap = 'calc(0.25rem * var(--task-font-scale))';
                     task.subtasks.forEach((subtask, idx) => {
                         const subtaskEl = document.createElement('div');
-                        subtaskEl.className = 'flex items-center space-x-2 text-sm';
+                        subtaskEl.className = 'flex items-center text-sm';
+                        subtaskEl.style.columnGap = 'calc(0.375rem * var(--task-font-scale))';
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
                         checkbox.className = 'w-4 h-4 subtask-checkbox';
@@ -1440,11 +1497,13 @@
                 }
                 
             } else if (taskListType === 'weekly') {
-                el.className = 'task-item bg-white p-4 rounded-lg shadow-md flex flex-col space-y-2';
+                el.className = 'task-item bg-white rounded-lg shadow-md flex flex-col space-y-2';
+                el.style.padding = `calc(0.75rem * var(--task-font-scale))`;
                 
                 // Ana görev başlığı satırı
                 const headerRow = document.createElement('div');
-                headerRow.className = 'flex items-center space-x-4';
+                headerRow.className = 'flex items-center';
+                headerRow.style.columnGap = 'calc(0.75rem * var(--task-font-scale))';
                 headerRow.innerHTML = `
                     <span class="flex-grow text-gray-800">${task.title} (Haftada ${task.frequency} kez)</span>
                     <button class="edit-task-btn text-blue-400 hover:text-blue-600 text-lg" title="Görevi düzenle">✎</button>
@@ -1458,7 +1517,8 @@
 
                 // Frekans kutucukları
                 const repRow = document.createElement('div');
-                repRow.className = 'ml-8 flex space-x-1 items-center';
+                repRow.className = 'ml-6 flex items-center';
+                repRow.style.columnGap = 'calc(0.25rem * var(--task-font-scale))';
                 for (let i = 0; i < task.frequency; i++) {
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
