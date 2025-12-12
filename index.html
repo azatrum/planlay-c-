@@ -832,6 +832,21 @@
         // --- YEREL DEPOLAMA YARDIMCILARI ---
 
         /**
+         * YENİ: Günlük görevleri getirir (Canlı veya Geçmişten)
+         * Bu fonksiyon, "donmuş" gün sorununu çözer.
+         */
+        function getEditableDailyTasks(dateStr) {
+            let tasks = lsGet(`tasks_daily_${dateStr}`, []);
+            if (!tasks || tasks.length === 0) {
+                const history = lsGet('history', {});
+                if (history && history[dateStr]) {
+                    return history[dateStr];
+                }
+            }
+            return tasks || [];
+        }
+
+        /**
          * Yerel depolamadan veri okur (JSON.parse yapar)
          */
         function lsGet(key, defaultValue = null) {
@@ -1136,16 +1151,9 @@
         // --- YEREL DEPOLAMADAN YÜKLEME FONKSİYONLARI ---
         function loadDailyTasks() {
             // Aktif tarihe göre yükle. Eğer aktif tarih için canlı günlük kayıt yoksa, arşivden oku (salt okunur).
-            let tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
-            let readOnly = false;
-            if (!tasks || tasks.length === 0) {
-                const history = lsGet('history', {});
-                if (history && history[activeDateStr]) {
-                    tasks = history[activeDateStr];
-                    // Geçmiş günler artık düzenlenebilir, sadece gelecek günler salt okunur
-                    readOnly = !isActiveDateEditable();
-                }
-            }
+            let tasks = getEditableDailyTasks(activeDateStr);
+            let readOnly = !isActiveDateEditable();
+            
             tasks = tasks || [];
             const dunyevi = tasks.filter(t => t.type === 'dunyevi');
             const ilmi = tasks.filter(t => t.type === 'ilmi');
@@ -1918,8 +1926,7 @@
                         showMessage('Salt Okunur', 'Gelecek gün için ekleme yapılamaz. Bugün veya geçmiş gün seçin.');
                         return;
                     }
-                    const key = `tasks_daily_${activeDateStr}`;
-                    const tasks = lsGet(key, []);
+                    const tasks = getEditableDailyTasks(activeDateStr);
                     let added = 0, already = [];
                     favorites.forEach(ft => {
                         const exists = tasks.some(t => t.title === ft.title);
@@ -1976,8 +1983,7 @@
                 showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece geçmiş veya bugün düzenlenebilir.');
                 return;
             }
-            const key = `tasks_daily_${activeDateStr}`;
-            const tasks = lsGet(key, []);
+            const tasks = getEditableDailyTasks(activeDateStr);
             const exists = tasks.some(t => t.title === title && t.type === type);
             if (exists) return;
             tasks.push({
@@ -2117,8 +2123,7 @@
                         showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece son 7 güne kadar düzenleyebilirsiniz.');
                         return;
                     }
-                    const key = `tasks_daily_${activeDateStr}`;
-                    const tasks = lsGet(key, []);
+                    const tasks = getEditableDailyTasks(activeDateStr);
                     tasks.push({
                         id: Date.now().toString(), // Benzersiz ID
                         title: title,
@@ -2191,8 +2196,7 @@
                         showMessage('Salt Okunur', 'Bu tarih arşivlenmiş. Sadece son 7 güne kadar düzenleyebilirsiniz.');
                         return;
                     }
-                    const key = `tasks_daily_${activeDateStr}`;
-                    const tasks = lsGet(key, []);
+                    const tasks = getEditableDailyTasks(activeDateStr);
                     const exists = tasks.some(t => t.title === task.title);
                     if (!exists) {
                         tasks.push({
@@ -2357,8 +2361,7 @@
 
             // Verileri kaydet
             if (editingTaskType === 'daily') {
-                const key = `tasks_daily_${editingTaskData.dateStr}`;
-                let tasks = lsGet(key, []);
+                let tasks = getEditableDailyTasks(editingTaskData.dateStr);
                 const taskIndex = tasks.findIndex(t => t.id === editingTaskData.id);
                 if (taskIndex > -1) {
                     tasks[taskIndex] = editingTaskData;
@@ -2392,8 +2395,7 @@
         }
 
         function updateSubtask(taskId, subtaskIndex) {
-            const key = `tasks_daily_${activeDateStr}`;
-            let tasks = lsGet(key, []);
+            let tasks = getEditableDailyTasks(activeDateStr);
             const taskIndex = tasks.findIndex(t => t.id === taskId);
 
             if (taskIndex > -1) {
@@ -2409,8 +2411,7 @@
         }
 
         function updateTaskRepetition(taskId, repetitionIndex) {
-            const key = `tasks_daily_${activeDateStr}`;
-            let tasks = lsGet(key, []);
+            let tasks = getEditableDailyTasks(activeDateStr);
             const taskIndex = tasks.findIndex(t => t.id === taskId);
 
             if (taskIndex > -1) {
@@ -2457,8 +2458,7 @@
                 return;
             }
             const newStatus = (currentStatus + 1) % 3;
-            const key = `tasks_daily_${activeDateStr}`;
-            const tasks = lsGet(key, []);
+            const tasks = getEditableDailyTasks(activeDateStr);
             
             const taskIndex = tasks.findIndex(t => t.id === taskId);
             if (taskIndex > -1) {
@@ -2502,8 +2502,7 @@
                     showMessage('Salt Okunur', 'Arşivlenmiş görevler silinemez. Sadece son 7 güne kadar düzenleyebilirsiniz.');
                     return;
                 }
-                const key = `tasks_daily_${activeDateStr}`;
-                let tasks = lsGet(key, []);
+                let tasks = getEditableDailyTasks(activeDateStr);
                 tasks = tasks.filter(t => t.id !== taskId);
                 // Persist and update history/stats for this date
                 persistDailyState(activeDateStr, tasks);
@@ -2548,11 +2547,7 @@
          */
         function calculateSuccess(tasks = null) {
             if (tasks === null) {
-                tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
-                // Eğer aktif tarihte canlı kayıt yoksa arşivden oku
-                if ((!tasks || tasks.length === 0) && lsGet('history', {})[activeDateStr]) {
-                    tasks = lsGet('history', {})[activeDateStr];
-                }
+                tasks = getEditableDailyTasks(activeDateStr);
             }
             
             const total = tasks.length;
@@ -2998,10 +2993,7 @@
 
         // Compute and update per-type daily success visuals
         function updateDailyTypeSuccess(type) {
-            let tasks = lsGet(`tasks_daily_${activeDateStr}`, []);
-            if ((!tasks || tasks.length === 0) && lsGet('history', {})[activeDateStr]) {
-                tasks = lsGet('history', {})[activeDateStr];
-            }
+            let tasks = getEditableDailyTasks(activeDateStr);
             const filtered = (tasks || []).filter(t => t.type === type);
             const { success: successRate } = computeSuccessFromTasks(filtered);
             const prefix = type === 'dunyevi' ? 'daily-dunyevi' : 'daily-ilmi';
