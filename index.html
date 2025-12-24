@@ -295,9 +295,12 @@
             <div class="lg:col-span-2 space-y-6">
                 
                 <!-- Geçmiş Günler Butonu -->
-                <div class="flex justify-start">
+                <div class="flex justify-start gap-3">
                     <button id="show-history-btn" class="bg-pink-400 hover:bg-pink-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-300">
                         Geçmiş Günler
+                    </button>
+                    <button id="show-stats-btn" class="bg-indigo-400 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-all duration-300">
+                        📊 Analiz
                     </button>
                 </div>
 
@@ -468,19 +471,20 @@
             </div>
             <!-- Haftalık -->
             <div class="glass-bg task-box rounded-xl shadow-lg p-4 border-green-300">
-                <div class="flex items-center justify-between mb-2 bg-gradient-to-r from-green-100 to-green-50 rounded-lg px-2 py-1">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xl">🗓️</span>
-                        <h2 class="text-xl font-bold text-green-700">Haftalık</h2>
+                <div class="flex flex-col mb-2 bg-gradient-to-r from-green-100 to-green-50 rounded-lg px-2 py-2">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">🗓️</span>
+                            <h2 class="text-xl font-bold text-green-700">Haftalık</h2>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button id="weekly-prev-btn" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm hover:bg-white" title="Önceki Hafta">←</button>
+                            <button id="weekly-jump-current" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm hover:bg-white" title="Bu Hafta">●</button>
+                            <button id="weekly-next-btn" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm hover:bg-white" title="Sonraki Hafta">→</button>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-1">
-                        <button id="weekly-prev-btn" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Önceki">←</button>
-                        <span id="weekly-current-label" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm">W00</span>
-                        <button id="weekly-next-btn" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Sonraki">→</button>
-                        <button id="weekly-jump-current" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Bu hafta">●</button>
-                        <select id="weekly-select" class="text-[10px] leading-none font-semibold text-green-700 bg-white/70 rounded-full px-2 py-1 shadow-sm" title="Hafta">
-                            <option value="">Seç</option>
-                        </select>
+                    <div class="text-center">
+                        <span id="weekly-date-range" class="text-[11px] font-medium text-green-800">Pazartesi - Pazar</span>
                     </div>
                 </div>
                 <!-- Haftalık Başarı Havuzu (sütunla hizalı) -->
@@ -678,6 +682,40 @@
             </div>
             <div id="history-list" class="space-y-2 overflow-y-auto h-[calc(70vh-100px)] pr-2">
                 <p class="text-gray-500">Yüklenecek geçmiş gün kaydı bulunamadı.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- İstatistik/Analiz Modal (YENİ) -->
+    <div id="stats-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-2xl font-bold text-indigo-600">📊 Başarı Analizi</h3>
+                <button id="stats-modal-close-btn" class="text-2xl font-bold text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            
+            <!-- Sekme Butonları (Günlük / Haftalık) -->
+            <div class="flex border-b border-gray-300 mb-4">
+                <button class="stats-tab-btn text-indigo-600 border-b-2 border-indigo-600 py-2 px-4 font-semibold" data-stats-tab="daily-chart">Günlük</button>
+                <button class="stats-tab-btn text-gray-500 py-2 px-4 font-semibold" data-stats-tab="weekly-chart">Haftalık</button>
+            </div>
+            
+            <!-- Grafik içerikleri -->
+            <div id="stats-content" class="min-h-[400px]">
+                <!-- Günlük Grafik -->
+                <div id="daily-chart-tab" class="stats-tab-content">
+                    <canvas id="daily-stats-chart"></canvas>
+                </div>
+                
+                <!-- Haftalık Grafik -->
+                <div id="weekly-chart-tab" class="stats-tab-content hidden">
+                    <canvas id="weekly-stats-chart"></canvas>
+                </div>
+                
+                <!-- Veri yoksa mesaj -->
+                <div id="no-stats-message" class="hidden text-center text-gray-500 py-8">
+                    <p>Henüz istatistik verisi yok. Görevlerinizi tamamlayın ve zaman içinde ilerlemenizi görün!</p>
+                </div>
             </div>
         </div>
     </div>
@@ -917,54 +955,48 @@
         function setupWeeklyNavigation() {
             const prevBtn = document.getElementById('weekly-prev-btn');
             const nextBtn = document.getElementById('weekly-next-btn');
-            const label = document.getElementById('weekly-current-label');
             const jumpBtn = document.getElementById('weekly-jump-current');
-            const selectEl = document.getElementById('weekly-select');
-            const dateFromWeekId = (weekId) => {
-                const [yearStr, weekStr] = weekId.split('-W');
-                const year = parseInt(yearStr, 10);
-                const week = parseInt(weekStr, 10);
-                const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
-                const dow = simple.getUTCDay();
-                const ISOweekStart = new Date(simple);
-                if (dow <= 4 && dow > 0) ISOweekStart.setUTCDate(simple.getUTCDate() - simple.getUTCDay() + 1);
-                else ISOweekStart.setUTCDate(simple.getUTCDate() + 8 - simple.getUTCDay());
-                return ISOweekStart; // Pazartesi
+            
+            /**
+             * Bir hafta ID'sine göre hafta değiştirir ve verileri yükler
+             */
+            const changeWeek = (newWeekId) => {
+                currentWeekStr = newWeekId;
+                loadWeeklyTasks(); // Görevleri, başarı yüzdesini ve tarih aralığını günceller
             };
+            
+            /**
+             * Hafta ID'sine delta ekler/çıkarır
+             */
             const addWeeks = (weekId, delta) => {
-                const start = dateFromWeekId(weekId);
+                const start = new Date(getWeekStartDate(weekId) + 'T00:00:00');
                 start.setUTCDate(start.getUTCDate() + delta * 7);
                 return getWeekId(new Date(start));
             };
-            const updateLabel = () => {
-                try {
-                    label.textContent = currentWeekStr; // Compact: show only week id
-                } catch { label.textContent = currentWeekStr; }
-            };
-            const populateWeeks = () => {
-                if (!selectEl) return;
-                // Collect week keys from localStorage
-                const weeks = [];
-                for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    const m = key && key.match(/^tasks_weekly_(\d{4}-W\d{2})$/);
-                    if (m) weeks.push(m[1]);
-                }
-                // Ensure current week is listed
-                if (!weeks.includes(currentWeekStr)) weeks.push(currentWeekStr);
-                weeks.sort();
-                selectEl.innerHTML = '<option value="">Hafta Seç</option>' + weeks.map(w => `<option value="${w}">${w}</option>`).join('');
-                selectEl.value = "";
-            };
-            updateLabel();
-            populateWeeks();
-            if (prevBtn) prevBtn.onclick = () => { currentWeekStr = addWeeks(currentWeekStr, -1); updateLabel(); loadWeeklyTasks(); };
-            if (nextBtn) nextBtn.onclick = () => { currentWeekStr = addWeeks(currentWeekStr, 1); updateLabel(); loadWeeklyTasks(); };
-            if (jumpBtn) jumpBtn.onclick = () => { currentWeekStr = getWeekId(new Date()); updateLabel(); loadWeeklyTasks(); };
-            if (selectEl) selectEl.onchange = (e) => {
-                const val = e.target.value;
-                if (val) { currentWeekStr = val; updateLabel(); loadWeeklyTasks(); }
-            };
+            
+            // Önceki hafta butonu
+            if (prevBtn) {
+                prevBtn.onclick = () => {
+                    const newWeek = addWeeks(currentWeekStr, -1);
+                    changeWeek(newWeek);
+                };
+            }
+            
+            // Sonraki hafta butonu
+            if (nextBtn) {
+                nextBtn.onclick = () => {
+                    const newWeek = addWeeks(currentWeekStr, 1);
+                    changeWeek(newWeek);
+                };
+            }
+            
+            // Bu haftaya dön butonu
+            if (jumpBtn) {
+                jumpBtn.onclick = () => {
+                    const todayWeek = getWeekId(new Date());
+                    changeWeek(todayWeek);
+                };
+            }
         }
             // Nöbet ve Günün Sözü kartlarını alt ikili bölüme taşı
             try {
@@ -1158,13 +1190,17 @@
             const dunyevi = tasks.filter(t => t.type === 'dunyevi');
             const ilmi = tasks.filter(t => t.type === 'ilmi');
             renderDailyTasks(dunyevi, ilmi, readOnly);
-            calculateSuccess(); // Günlük başarıyı hesapla/güncelle
+            
+            // YENİ: Her iki tür için başarı oranı ve havuz animasyonunu güncelle
+            updateDailyTypeSuccess('dunyevi');
+            updateDailyTypeSuccess('ilmi');
         }
 
         function loadWeeklyTasks() {
             const tasks = lsGet(`tasks_weekly_${currentWeekStr}`, []);
             renderWeeklyTasks(tasks);
             calculateWeeklySuccess(); // YENİ: Haftalık başarıyı hesapla/güncelle
+            updateWeeklyDateRange(); // YENİ: Hafta tarih aralığını güncelle
         }
 
         function loadPools() {
@@ -1867,6 +1903,10 @@
             // Geçmiş Modal
             $("#show-history-btn").onclick = showHistoryModal;
             $("#history-modal-close-btn").onclick = () => $("#history-modal").classList.add('hidden');
+            
+            // YENİ: İstatistik/Analiz Modal
+            $("#show-stats-btn").onclick = showStatsModal;
+            $("#stats-modal-close-btn").onclick = () => $("#stats-modal").classList.add('hidden');
 
             // Havuz Modal aç/kapat
             const openPoolBtn = $("#open-pool-btn");
@@ -2840,6 +2880,123 @@
             launchFireworks();
             burstConfetti();
         }
+        
+        /**
+         * YENİ: Başarı eşik kutlaması (%50, %70, %100)
+         * @param {number} milestone - 50, 70 veya 100
+         * @param {string} type - 'dunyevi' veya 'ilmi'
+         */
+        function showMilestoneCelebration(milestone, type) {
+            const typeLabel = type === 'dunyevi' ? 'Dünyevi' : 'İlmi';
+            const backdrop = $("#celebrate-backdrop");
+            const textEl = $("#celebrate-text");
+            const sourceEl = $("#celebrate-source");
+            const headerEl = document.querySelector('.celebrate-header span');
+            
+            if (!backdrop || !textEl || !sourceEl) return;
+            
+            // Mesajlar
+            const messages = {
+                50: {
+                    text: `🎉 Harika! ${typeLabel} görevlerinizin %50'sini tamamladınız!`,
+                    source: "Yarı yolu geçtiniz, devam edin!",
+                    emoji: "🌟",
+                    color: "#f59e0b" // amber
+                },
+                70: {
+                    text: `🔥 Mükemmel! ${typeLabel} görevlerinizin %70'ini bitirdiniz!`,
+                    source: "Az kaldı, biraz daha gayret!",
+                    emoji: "💪",
+                    color: "#8b5cf6" // purple
+                },
+                100: {
+                    text: `🏆 GOLDEN BUZZER! Tüm ${typeLabel} görevleri tamamlandı!`,
+                    source: "Mükemmelsiniz! Tebrikler!",
+                    emoji: "🎆",
+                    color: "#eab308" // yellow/gold
+                }
+            };
+            
+            const msg = messages[milestone] || messages[50];
+            
+            // Modal içeriğini güncelle
+            textEl.textContent = msg.text;
+            sourceEl.textContent = msg.source;
+            if (headerEl) {
+                headerEl.textContent = `${msg.emoji} ${milestone}% Başarı ${msg.emoji}`;
+                headerEl.style.background = `linear-gradient(135deg, ${msg.color}, #a6c1ee)`;
+            }
+            
+            // Modalı göster
+            backdrop.style.display = 'flex';
+            
+            // Animasyonlar
+            if (milestone === 100) {
+                // En büyük kutlama - havai fişekler + konfeti
+                launchFireworks();
+                burstConfetti();
+                addGoldenSparkles(); // Ekstra altın parıltılar
+            } else if (milestone === 70) {
+                // Orta seviye - konfeti + yıldızlar
+                burstConfetti();
+                addStarBurst();
+            } else {
+                // %50 - Sadece konfeti
+                burstConfetti();
+            }
+        }
+        
+        /**
+         * YENİ: Altın parıltı animasyonu (100% için)
+         */
+        function addGoldenSparkles() {
+            const auraEl = $("#celebrate-aura");
+            if (!auraEl) return;
+            
+            auraEl.innerHTML = '';
+            for (let i=0; i<24; i++) {
+                const dot = document.createElement('span');
+                dot.className = 'dot';
+                dot.style.background = 'radial-gradient(circle, #ffd700, #ffed4e)';
+                const dx = (Math.random()<0.5?-1:1) * (12 + Math.floor(Math.random()*15));
+                const dy = (Math.random()<0.5?-1:1) * (10 + Math.floor(Math.random()*12));
+                dot.style.left = Math.floor(Math.random()*95)+'%';
+                dot.style.top = Math.floor(Math.random()*95)+'%';
+                dot.style.setProperty('--dx', dx+'px');
+                dot.style.setProperty('--dy', dy+'px');
+                dot.style.animationDelay = (Math.random()*2)+'s';
+                auraEl.appendChild(dot);
+            }
+        }
+        
+        /**
+         * YENİ: Yıldız patlaması animasyonu (70% için)
+         */
+        function addStarBurst() {
+            const fw = $("#fireworks");
+            if (!fw) return;
+            
+            fw.innerHTML = '';
+            const colors = ['#8b5cf6', '#a78bfa', '#c4b5fd'];
+            for (let i=0; i<12; i++) {
+                const s = document.createElement('span');
+                s.className = 'spark';
+                s.textContent = '⭐';
+                const left = Math.floor(Math.random()*80)+10;
+                const top = Math.floor(Math.random()*30)+10;
+                const fx = (Math.random()<0.5? -1:1) * (60 + Math.floor(Math.random()*50));
+                const fy = - (80 + Math.floor(Math.random()*60));
+                const sz = 12 + Math.floor(Math.random()*8);
+                const dur = (1.0 + Math.random()*0.6)+'s';
+                s.style.left = left+'%';
+                s.style.top = top+'%';
+                s.style.setProperty('--fx', fx+'px');
+                s.style.setProperty('--fy', fy+'px');
+                s.style.setProperty('--sz', sz+'px');
+                s.style.setProperty('--dur', dur);
+                fw.appendChild(s);
+            }
+        }
 
         // Close celebration modal
         (function(){
@@ -3047,14 +3204,38 @@
             triggerSplashBurst(prefix, 75, prev, successRate);
             window.__lastRates[type] = successRate;
 
-            // If both daily types reached 100%, trigger celebration (once per day)
+            // YENİ: Başarı eşiklerinde kutlama göster (%50, %70, %100)
             try {
                 const rates = window.__lastRates || { dunyevi: 0, ilmi: 0 };
+                
+                // Her bir tip için ayrı ayrı kutlama göster (sadece bir kez)
+                const typeKey = type === 'dunyevi' ? 'dunyevi' : 'ilmi';
+                const milestone50Key = `celebration_${typeKey}_50_${activeDateStr}`;
+                const milestone70Key = `celebration_${typeKey}_70_${activeDateStr}`;
+                const milestone100Key = `celebration_${typeKey}_100_${activeDateStr}`;
+                
+                // %100 Kutlama (Golden Buzzer etkisi)
+                if (successRate >= 100 && prev < 100 && !lsGet(milestone100Key, false)) {
+                    showMilestoneCelebration(100, type);
+                    lsSet(milestone100Key, true);
+                }
+                // %70 Kutlama
+                else if (successRate >= 70 && prev < 70 && !lsGet(milestone70Key, false)) {
+                    showMilestoneCelebration(70, type);
+                    lsSet(milestone70Key, true);
+                }
+                // %50 Kutlama
+                else if (successRate >= 50 && prev < 50 && !lsGet(milestone50Key, false)) {
+                    showMilestoneCelebration(50, type);
+                    lsSet(milestone50Key, true);
+                }
+                
+                // Tüm günlük görevler %100 olunca büyük kutlama
                 const allDone = (rates.dunyevi === 100 && rates.ilmi === 100);
-                const shownKey = `celebration_shown_${activeDateStr}`;
-                if (allDone && !lsGet(shownKey, false)) {
-                    showDailyCelebration();
-                    lsSet(shownKey, true);
+                const allDoneKey = `celebration_all_100_${activeDateStr}`;
+                if (allDone && !lsGet(allDoneKey, false)) {
+                    showDailyCelebration(); // Eski büyük kutlama
+                    lsSet(allDoneKey, true);
                 }
             } catch (e) { /* no-op */ }
         }
@@ -3143,6 +3324,22 @@
         }
         
         /**
+         * YENİ: İstatistik modalini açar ve grafikleri çizer
+         */
+        function showStatsModal() {
+            // Modalı göster
+            $("#stats-modal").classList.remove('hidden');
+            
+            // Verileri yükle
+            const allStats = lsGet('stats', { daily: {}, weekly: {} });
+            const dailyStats = allStats.daily || {};
+            const weeklyStats = allStats.weekly || {};
+            
+            // Grafikleri renderla
+            renderStats(dailyStats, weeklyStats);
+        }
+        
+        /**
          * YENİ: Havuz konteyner ID'sinden havuz tipini döndürür
          */
         function poolTypeFromContainer(containerId) {
@@ -3171,14 +3368,59 @@
         
         /**
          * Bir tarih objesinden hafta ID'si (YYYY-WW) oluşturur
+         * GÜNCELLENDİ: Pazartesi baz alarak hafta hesaplıyor (ISO 8601 standardı)
          */
         function getWeekId(date) {
             const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
+            const dayNum = d.getUTCDay() || 7; // Pazar = 7, Pazartesi = 1
             d.setUTCDate(d.getUTCDate() + 4 - dayNum);
             const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
             const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-            return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`; // GÜNCELLENDİ: W Eklendi
+            return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+        }
+
+        /**
+         * YENİ: Hafta ID'sinden o haftanın Pazartesi tarihini döndürür
+         */
+        function getWeekStartDate(weekId) {
+            // weekId formatı: "2025-W01"
+            const [year, week] = weekId.split('-W').map(Number);
+            const simple = new Date(Date.UTC(year, 0, 1 + (week - 1) * 7));
+            const dow = simple.getUTCDay();
+            const ISOweekStart = simple;
+            if (dow <= 4) {
+                ISOweekStart.setUTCDate(simple.getUTCDate() - dow + 1);
+            } else {
+                ISOweekStart.setUTCDate(simple.getUTCDate() + 8 - dow);
+            }
+            return formatDateKey(ISOweekStart);
+        }
+
+        /**
+         * YENİ: Hafta ID'sinden o haftanın Pazar tarihini döndürür
+         */
+        function getWeekEndDate(weekId) {
+            const monday = getWeekStartDate(weekId);
+            return addDays(monday, 6); // Pazartesi + 6 gün = Pazar
+        }
+
+        /**
+         * YENİ: Hafta tarih aralığını günceller (örn: "23 Aralık - 29 Aralık 2025")
+         */
+        function updateWeeklyDateRange() {
+            const rangeEl = $("#weekly-date-range");
+            if (!rangeEl) return;
+            
+            const startDate = getWeekStartDate(currentWeekStr);
+            const endDate = getWeekEndDate(currentWeekStr);
+            
+            const start = new Date(startDate + 'T00:00:00');
+            const end = new Date(endDate + 'T00:00:00');
+            
+            const startFormatted = start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+            const endFormatted = end.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+            
+            rangeEl.textContent = `${startFormatted} - ${endFormatted}`;
         }
 
         /**
